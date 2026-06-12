@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+
+:root {
+  --bg: #0c0c14;
+  --bg-card: #12121f;
+  --bg-card-hover: #171728;
+  --border: #1e1e32;
+  --border-bright: #2e2e4a;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-cyan: #06b6d4;
+  --accent-amber: #f59e0b;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a44;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-hover {
+  transition: border-color 0.2s, transform 0.2s;
+}
+.card-hover:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+}
+
+.gradient-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(12, 12, 20, 0.98) 0%,
+    rgba(12, 12, 20, 0.7) 50%,
+    rgba(12, 12, 20, 0.2) 100%
+  );
+}
