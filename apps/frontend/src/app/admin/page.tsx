@@ -15,11 +15,11 @@ const STAT_CARDS = [
 ];
 
 const QUICK_LINKS = [
-  { label: 'Контент', desc: 'Новини, статті, ігрові системи', href: '/admin/content', icon: '📋', soon: false },
+  { label: 'Контент', desc: 'Новини, статті та матеріали', href: '/admin/content', icon: '📋', soon: false },
+  { label: 'Ігрові системи', desc: 'Огляди та описи систем', href: '/admin/systems', icon: '🎲', soon: false },
+  { label: 'Набори', desc: 'Стартові набори та інструменти', href: '/admin/kits', icon: '📦', soon: false },
   { label: 'Користувачі', desc: 'Управління акаунтами', href: '/admin/users', icon: '👤', soon: true },
-  { label: 'Ігрові системи', desc: 'Системи та набори', href: '/admin/systems', icon: '🎲', soon: true },
   { label: 'Головна сторінка', desc: 'Блоки та виділений контент', href: '/admin/homepage', icon: '🏠', soon: true },
-  { label: 'Медіа', desc: 'Файли та зображення', href: '/admin/media', icon: '🖼️', soon: true },
   { label: 'Налаштування', desc: 'Конфігурація платформи', href: '/admin/settings', icon: '⚙️', soon: true },
 ];
 
@@ -197,7 +197,10 @@ export default function AdminPage() {
             }}
           >
             <strong style={{ color: '#10b981' }}>✓ CMS активна.</strong>{' '}
-            Перейдіть до розділу <Link href="/admin/content" style={{ color: '#10b981', textDecoration: 'underline' }}>Контент</Link> щоб створювати, редагувати та публікувати матеріали.
+            Управляйте{' '}
+            <Link href="/admin/content" style={{ color: '#10b981', textDecoration: 'underline' }}>контентом</Link>,{' '}
+            <Link href="/admin/systems" style={{ color: '#a78bfa', textDecoration: 'underline' }}>ігровими системами</Link> та{' '}
+            <Link href="/admin/kits" style={{ color: '#10b981', textDecoration: 'underline' }}>наборами</Link> через адмін-панель.
           </div>
         </div>
       </main>

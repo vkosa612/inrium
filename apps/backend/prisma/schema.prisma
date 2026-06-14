@@ -200,3 +200,45 @@ model Game {
   @@index([status])
   @@index([startsAt])
 }
+
+// ─── Game Systems & Kits ───────────────────────────────────────────────────────
+
+model GameSystem {
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  description      String
+  shortDescription String?
+  complexity       String?
+  genre            String?
+  tags             String[]
+  imageUrl         String?
+  status           ContentStatus @default(DRAFT)
+  publishedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  kits             Kit[]
+
+  @@index([status])
+}
+
+model Kit {
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  description      String
+  shortDescription String?
+  category         String?
+  priceText        String?
+  imageUrl         String?
+  status           ContentStatus @default(DRAFT)
+  publishedAt      DateTime?
+  systemId         String?
+  system           GameSystem?   @relation(fields: [systemId], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([status])
+  @@index([systemId])
+}

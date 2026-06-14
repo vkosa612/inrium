@@ -9,6 +9,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { ContentModule } from './modules/content/content.module';
+import { SystemsModule } from './modules/systems/systems.module';
+import { KitsModule } from './modules/kits/kits.module';
 import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -36,6 +38,8 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuthModule,
     ContentModule,
+    SystemsModule,
+    KitsModule,
     HealthModule,
   ],
 

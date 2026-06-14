@@ -289,3 +289,172 @@ export async function apiDeleteContent(id: string): Promise<void> {
     throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
   }
 }
+
+// ─── Game Systems ─────────────────────────────────────────────────────────────
+
+export interface GameSystem {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string | null;
+  complexity: string | null;
+  genre: string | null;
+  tags: string[];
+  imageUrl: string | null;
+  status: ContentStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GameSystemFull extends GameSystem {
+  description: string;
+  kits: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    shortDescription: string | null;
+    category: string | null;
+    priceText: string | null;
+    imageUrl: string | null;
+  }>;
+}
+
+export interface SystemList {
+  items: GameSystem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CreateSystemPayload {
+  title: string;
+  slug?: string;
+  description: string;
+  shortDescription?: string;
+  complexity?: string;
+  genre?: string;
+  tags?: string[];
+  imageUrl?: string;
+  status?: ContentStatus;
+}
+export type UpdateSystemPayload = Partial<CreateSystemPayload>;
+
+export async function apiGetSystems(query: { search?: string; page?: number; limit?: number } = {}): Promise<SystemList> {
+  const qs = buildQuery(query as Record<string, string | number | undefined>);
+  return apiFetch<SystemList>(`/systems${qs}`, { cache: 'no-store' });
+}
+
+export async function apiGetSystemBySlug(slug: string): Promise<GameSystemFull> {
+  return apiFetch<GameSystemFull>(`/systems/${slug}`, { cache: 'no-store' });
+}
+
+export async function apiGetAdminSystemsList(query: { status?: ContentStatus; search?: string; page?: number } = {}): Promise<SystemList> {
+  const qs = buildQuery(query as Record<string, string | number | undefined>);
+  return apiFetchAuth<SystemList>(`/systems/admin/list${qs}`);
+}
+
+export async function apiGetSystemByIdAdmin(id: string): Promise<GameSystemFull> {
+  return apiFetchAuth<GameSystemFull>(`/systems/admin/${id}`);
+}
+
+export async function apiCreateSystem(payload: CreateSystemPayload): Promise<GameSystemFull> {
+  return apiFetchAuth<GameSystemFull>('/systems', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function apiUpdateSystem(id: string, payload: UpdateSystemPayload): Promise<GameSystemFull> {
+  return apiFetchAuth<GameSystemFull>(`/systems/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+}
+
+export async function apiDeleteSystem(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
+  const res = await fetch(`${getBaseUrl()}/systems/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({})) as ApiError;
+    throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
+  }
+}
+
+// ─── Kits ─────────────────────────────────────────────────────────────────────
+
+export interface Kit {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string | null;
+  category: string | null;
+  priceText: string | null;
+  imageUrl: string | null;
+  status: ContentStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  system: { id: string; slug: string; title: string } | null;
+}
+
+export interface KitFull extends Kit {
+  description: string;
+}
+
+export interface KitList {
+  items: Kit[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CreateKitPayload {
+  title: string;
+  slug?: string;
+  description: string;
+  shortDescription?: string;
+  category?: string;
+  priceText?: string;
+  imageUrl?: string;
+  status?: ContentStatus;
+  systemId?: string;
+}
+export type UpdateKitPayload = Partial<CreateKitPayload>;
+
+export async function apiGetKits(query: { search?: string; systemId?: string; page?: number; limit?: number } = {}): Promise<KitList> {
+  const qs = buildQuery(query as Record<string, string | number | undefined>);
+  return apiFetch<KitList>(`/kits${qs}`, { cache: 'no-store' });
+}
+
+export async function apiGetKitBySlug(slug: string): Promise<KitFull> {
+  return apiFetch<KitFull>(`/kits/${slug}`, { cache: 'no-store' });
+}
+
+export async function apiGetAdminKitsList(query: { status?: ContentStatus; search?: string; page?: number } = {}): Promise<KitList> {
+  const qs = buildQuery(query as Record<string, string | number | undefined>);
+  return apiFetchAuth<KitList>(`/kits/admin/list${qs}`);
+}
+
+export async function apiGetKitByIdAdmin(id: string): Promise<KitFull> {
+  return apiFetchAuth<KitFull>(`/kits/admin/${id}`);
+}
+
+export async function apiCreateKit(payload: CreateKitPayload): Promise<KitFull> {
+  return apiFetchAuth<KitFull>('/kits', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function apiUpdateKit(id: string, payload: UpdateKitPayload): Promise<KitFull> {
+  return apiFetchAuth<KitFull>(`/kits/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+}
+
+export async function apiDeleteKit(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
+  const res = await fetch(`${getBaseUrl()}/kits/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({})) as ApiError;
+    throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
+  }
+}
