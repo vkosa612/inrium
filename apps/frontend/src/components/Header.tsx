@@ -5,11 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 
 const NAV_LINKS = [
   { label: 'Новини', href: '/news' },
-  { label: 'Ігрові системи', href: '/systems' },
   { label: 'Статті', href: '/articles' },
+  { label: 'Ігрові системи', href: '/systems' },
   { label: 'Набори', href: '/kits' },
-  { label: 'Спільнота', href: '/community' },
-  { label: 'Допомога', href: '/help' },
+  { label: 'Довідка', href: '/help' },
 ];
 
 const ROLE_LABEL: Record<string, string> = {

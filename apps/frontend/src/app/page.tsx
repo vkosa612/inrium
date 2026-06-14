@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetHome, type HomeData, type ContentItem, type GameSystem, type Kit } from '@/lib/api';
+import { apiGetHome, type HomeData, type ContentItem, type GameSystem, type Kit, type HelpItem } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,6 +164,7 @@ function HeroSection({ stats }: { stats: HomeData['stats'] }) {
             { label: 'Наборів', value: stats.kits, color: '#10b981' },
             { label: 'Статей', value: stats.articles, color: '#ec4899' },
             { label: 'Новин', value: stats.news, color: '#f59e0b' },
+            { label: 'Довідок', value: stats.help, color: '#f7971f' },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 26, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
@@ -191,7 +192,8 @@ export default async function HomePage() {
   const latestArticles = data?.latestArticles ?? [];
   const systems = data?.systems ?? [];
   const kits = data?.kits ?? [];
-  const stats = data?.stats ?? { news: 0, articles: 0, systems: 0, kits: 0 };
+  const helpItems: HelpItem[] = data?.helpItems ?? [];
+  const stats = data?.stats ?? { news: 0, articles: 0, systems: 0, kits: 0, help: 0 };
 
   return (
     <>
@@ -264,6 +266,26 @@ export default async function HomePage() {
               </div>
             )}
           </section>
+
+          {/* ── Help section ── */}
+          {helpItems.length > 0 && (
+            <section style={{ marginBottom: 52 }}>
+              <SectionHeader title="Довідка" href="/help" accent="#f7971f" count={stats.help} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                {helpItems.map((item) => (
+                  <Link key={item.id} href={`/help/${item.slug}`} style={{ textDecoration: 'none' }}>
+                    <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', cursor: 'pointer', height: '100%', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(247,151,31,0.1)', border: '1px solid rgba(247,151,31,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📖</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4, lineHeight: 1.35 }}>{item.title}</div>
+                        {item.excerpt && <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.excerpt}</div>}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* ── CTA strip ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 16 }}>

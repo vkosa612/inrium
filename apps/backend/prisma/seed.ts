@@ -326,7 +326,72 @@ async function main() {
     tagIds: [tags['beginners']],
   });
 
-  console.log(`✅ Content    : 2 news, 2 articles, 4 game systems, 2 kits, 2 help pages`);
+  await upsertContent({
+    type: ContentType.HELP_PAGE,
+    status: ContentStatus.PUBLISHED,
+    title: 'Як почати користуватись INRIUM',
+    slug: 'how-to-use-inrium',
+    excerpt: 'Огляд функцій порталу INRIUM: пошук матеріалів, ігрові системи, набори, реєстрація та ролі.',
+    content:
+      '## INRIUM — ваш TTRPG-портал\n\n### Що таке INRIUM?\n\nINRIUM — україномовний портал для гравців і майстрів настільних рольових ігор. Тут ви знайдете:\n\n- **Ігрові системи** — огляди D&D, Pathfinder, Call of Cthulhu та інших\n- **Набори** — стартові набори, набори GM і гравця\n- **Новини та статті** — матеріали про TTRPG\n- **Довідку** — відповіді на часті питання\n\n### Як шукати матеріали?\n\nВикористовуй кнопку 🔍 у шапці або перейди на `/search`. Введи мінімум 2 символи — пошук охоплює весь контент сайту.\n\n### Фільтри\n\nНа сторінках систем, наборів, новин та статей є фільтри. Вибери жанр, складність або категорію, щоб звузити результати.\n\n### Реєстрація\n\nДля повного доступу зареєструйся або увійди через кнопку у правому куті шапки.',
+    isFeatured: true,
+    showOnHomePage: true,
+    publishedAt: now,
+    authorId: editor.id,
+    categoryId: cats['help'],
+    tagIds: [tags['beginners']],
+  });
+
+  await upsertContent({
+    type: ContentType.HELP_PAGE,
+    status: ContentStatus.PUBLISHED,
+    title: 'Як обрати ігрову систему',
+    slug: 'how-to-choose-system',
+    excerpt: 'Порівняння популярних TTRPG-систем: що підходить для початківців, а що для досвідчених гравців.',
+    content:
+      '## Як обрати ігрову систему?\n\n### Для початківців\n\n**Dungeons & Dragons 5e** — найпопулярніша система з великою спільнотою і безліччю матеріалів. Ідеально для першого знайомства з TTRPG.\n\n**Pathfinder 2e** — детальна система з широким вибором механік. Підходить, якщо хочеш більше тактичних варіантів.\n\n### Для аматорів атмосфери\n\n**Call of Cthulhu** — жахи та детективні пригоди у стилі Говарда Лавкрафта. Акцент на розслідуваннях.\n\n**Mork Borg** — похмурий постапокаліпсис з мінімальними правилами і максимальним настроєм.\n\n### Поради при виборі\n\n1. Дізнайся жанр, який подобається твоїй групі\n2. Оціни складність — скільки часу готові витрачати на вивчення правил\n3. Перевір наявність матеріалів українською або зручного доступу до PDFів\n4. Спробуй one-shot перш ніж починати кампанію',
+    isFeatured: false,
+    showOnHomePage: true,
+    publishedAt: now,
+    authorId: editor.id,
+    categoryId: cats['help'],
+    tagIds: [tags['beginners'], tags['dnd'], tags['pathfinder']],
+  });
+
+  await upsertContent({
+    type: ContentType.HELP_PAGE,
+    status: ContentStatus.PUBLISHED,
+    title: 'Ролі користувачів на INRIUM',
+    slug: 'user-roles',
+    excerpt: 'Player, Game Master, Editor, Admin — що означає кожна роль і які можливості вона дає.',
+    content:
+      '## Ролі користувачів INRIUM\n\nПісля реєстрації кожен користувач отримує роль. Від ролі залежить доступ до функцій сайту.\n\n### 🎲 Player (Гравець)\n\nБазова роль для всіх нових користувачів. Дозволяє:\n- Переглядати всі публічні матеріали\n- Використовувати пошук та фільтри\n- Керувати власним профілем\n\n### 🧙 Game Master (Майстер)\n\nДосвідчений гравець або провідний кампаній:\n- Всі можливості Player\n- Позначення як Game Master у профілі\n\n### ✏️ Editor (Редактор)\n\nПомічник адміністрації:\n- Всі можливості Game Master\n- Доступ до Адмінки\n- Може створювати та редагувати матеріали\n- Публікує контент після перевірки\n\n### 👑 Admin (Адміністратор)\n\nПовний доступ до платформи:\n- Всі можливості Editor\n- Може управляти ігровими системами та наборами\n- Управляє користувачами та ролями\n- Налаштовує головну сторінку',
+    isFeatured: false,
+    showOnHomePage: false,
+    publishedAt: now,
+    authorId: editor.id,
+    categoryId: cats['help'],
+    tagIds: [],
+  });
+
+  await upsertContent({
+    type: ContentType.HELP_PAGE,
+    status: ContentStatus.PUBLISHED,
+    title: 'Як підготувати one-shot пригоду',
+    slug: 'how-to-prepare-one-shot',
+    excerpt: 'Покрокове керівництво з підготовки самодостатньої пригоди на один вечір для GM.',
+    content:
+      '## One-Shot: пригода за один вечір\n\n### Що таке one-shot?\n\nOne-shot — самодостатня пригода, яка починається і завершується протягом одного-двох ігрових сеансів (3–5 годин). Ідеально для знайомства з новою системою або групою.\n\n### Структура one-shot\n\n**1. Зачіпка (hook)** — швидке введення в проблему (5–10 хв)\n\n**2. Конфлікт** — основна частина з вибором і перешкодами\n\n**3. Кульмінація** — фінальна сцена або бій\n\n**4. Розв\'язка** — короткий епілог\n\n### Поради GM\n\n- Підготуй 3 сцени замість великої карти\n- Використовуй преґенерованих персонажів\n- Тримай темп — уникай зайвих правил у перший раз\n- Зверни увагу на набори для one-shot у розділі /kits',
+    isFeatured: false,
+    showOnHomePage: true,
+    publishedAt: now,
+    authorId: editor.id,
+    categoryId: cats['help'],
+    tagIds: [tags['gm'], tags['one-shot']],
+  });
+
+  console.log(`✅ Content    : 2 news, 2 articles, 4 game systems, 2 kits, 6 help pages`);
+
 
   // ── Home page blocks ──────────────────────────────────────────────────────────
   const blockDefs = [

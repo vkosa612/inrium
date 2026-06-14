@@ -20,6 +20,16 @@ const KIT_SELECT = {
   system: { select: { id: true, slug: true, title: true } },
 } as const;
 
+const HELP_SELECT = {
+  id: true, slug: true, title: true, excerpt: true,
+  publishedAt: true, createdAt: true,
+  category: { select: { id: true, name: true, slug: true } },
+} as const;
+
+function contentUrl(type: ContentType, slug: string): string {
+  return type === ContentType.HELP_PAGE ? `/help/${slug}` : `/content/${slug}`;
+}
+
 @Injectable()
 export class HomeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,10 +37,10 @@ export class HomeService {
   async getHome() {
     const PUBLISHED = ContentStatus.PUBLISHED;
 
-    const [featured, latestNews, latestArticles, systems, kits, counts] =
+    const [featured, latestNews, latestArticles, systems, kits, helpItems, counts] =
       await Promise.all([
         this.prisma.contentItem.findMany({
-          where: { status: PUBLISHED, isFeatured: true },
+          where: { status: PUBLISHED, isFeatured: true, type: { not: ContentType.HELP_PAGE } },
           select: CONTENT_SELECT,
           orderBy: { publishedAt: 'desc' },
           take: 4,
@@ -59,15 +69,22 @@ export class HomeService {
           orderBy: { publishedAt: 'desc' },
           take: 4,
         }),
+        this.prisma.contentItem.findMany({
+          where: { status: PUBLISHED, type: ContentType.HELP_PAGE },
+          select: HELP_SELECT,
+          orderBy: { publishedAt: 'desc' },
+          take: 4,
+        }),
         Promise.all([
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.NEWS } }),
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.ARTICLE } }),
           this.prisma.gameSystem.count({ where: { status: PUBLISHED } }),
           this.prisma.kit.count({ where: { status: PUBLISHED } }),
+          this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.HELP_PAGE } }),
         ]),
       ]);
 
-    const [newsCount, articlesCount, systemsCount, kitsCount] = counts;
+    const [newsCount, articlesCount, systemsCount, kitsCount, helpCount] = counts;
 
     return {
       featured,
@@ -75,11 +92,13 @@ export class HomeService {
       latestArticles,
       systems,
       kits,
+      helpItems,
       stats: {
         news: newsCount,
         articles: articlesCount,
         systems: systemsCount,
         kits: kitsCount,
+        help: helpCount,
       },
     };
   }
@@ -144,12 +163,12 @@ export class HomeService {
     const results = [
       ...contentItems.map((i) => ({
         id: i.id,
-        type: 'content' as const,
+        type: i.type === ContentType.HELP_PAGE ? ('help' as const) : ('content' as const),
         subtype: i.type as string,
         title: i.title,
         slug: i.slug,
         excerpt: i.excerpt ?? null,
-        url: `/content/${i.slug}`,
+        url: contentUrl(i.type, i.slug),
         updatedAt: i.updatedAt.toISOString(),
       })),
       ...systems.map((s) => ({

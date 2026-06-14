@@ -467,6 +467,17 @@ export interface HomeStats {
   articles: number;
   systems: number;
   kits: number;
+  help: number;
+}
+
+export interface HelpItem {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  category: ContentCategory | null;
 }
 
 export interface HomeData {
@@ -475,6 +486,7 @@ export interface HomeData {
   latestArticles: ContentItem[];
   systems: GameSystem[];
   kits: Kit[];
+  helpItems: HelpItem[];
   stats: HomeStats;
 }
 
@@ -486,7 +498,7 @@ export async function apiGetHome(): Promise<HomeData> {
 
 export interface SearchResult {
   id: string;
-  type: 'content' | 'system' | 'kit';
+  type: 'content' | 'help' | 'system' | 'kit';
   subtype: string | null;
   title: string;
   slug: string;
@@ -504,4 +516,25 @@ export interface SearchResponse {
 export async function apiSearch(q: string): Promise<SearchResponse> {
   const qs = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
   return apiFetch<SearchResponse>(`/search${qs}`, { cache: 'no-store' });
+}
+
+// ─── Help ─────────────────────────────────────────────────────────────────────
+
+export interface HelpList {
+  items: ContentItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function apiGetHelp(
+  query: { category?: string; tag?: string; search?: string; page?: number; limit?: number } = {},
+): Promise<HelpList> {
+  const qs = buildQuery({ ...query, type: 'HELP_PAGE' } as Record<string, string | number | undefined>);
+  return apiFetch<HelpList>(`/help${qs}`, { cache: 'no-store' });
+}
+
+export async function apiGetHelpBySlug(slug: string): Promise<ContentItemFull> {
+  return apiFetch<ContentItemFull>(`/help/${slug}`, { cache: 'no-store' });
 }

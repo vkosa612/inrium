@@ -9,12 +9,14 @@ import { apiSearch, type SearchResult } from '@/lib/api';
 
 const TYPE_LABEL: Record<string, string> = {
   content: 'Матеріал',
+  help: 'Довідка',
   system: 'Ігрова система',
   kit: 'Набір',
 };
 
 const TYPE_COLOR: Record<string, string> = {
   content: '#a78bfa',
+  help: '#f7971f',
   system: '#22d3ee',
   kit: '#10b981',
 };
@@ -34,7 +36,7 @@ function ResultCard({ result }: { result: SearchResult }) {
     <Link href={result.url} style={{ textDecoration: 'none', display: 'block' }}>
       <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', cursor: 'pointer', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
         <div style={{ width: 36, height: 36, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
-          {result.type === 'content' ? '📄' : result.type === 'system' ? '🎲' : '📦'}
+          {result.type === 'content' ? '📄' : result.type === 'help' ? '📖' : result.type === 'system' ? '🎲' : '📦'}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 4, alignItems: 'center' }}>
@@ -100,6 +102,7 @@ function SearchContent() {
 
   const grouped = {
     content: results.filter((r) => r.type === 'content'),
+    help: results.filter((r) => r.type === 'help'),
     system: results.filter((r) => r.type === 'system'),
     kit: results.filter((r) => r.type === 'kit'),
   };
@@ -168,6 +171,18 @@ function SearchContent() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {grouped.content.map((r) => <ResultCard key={r.id} result={r} />)}
+              </div>
+            </section>
+          )}
+
+          {grouped.help.length > 0 && (
+            <section style={{ marginBottom: 32 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#f7971f', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 3, height: 14, background: '#f7971f', borderRadius: 2, display: 'inline-block' }} />
+                Довідка · {grouped.help.length}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {grouped.help.map((r) => <ResultCard key={r.id} result={r} />)}
               </div>
             </section>
           )}
