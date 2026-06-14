@@ -4,10 +4,25 @@ import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class SystemQueryDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Search in title/description' })
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by genre (partial match)', example: 'Фентезі' })
+  @IsOptional()
+  @IsString()
+  genre?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by complexity level', example: 'Початківець' })
+  @IsOptional()
+  @IsString()
+  complexity?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by tag (exact match in tags array)', example: 'fantasy' })
+  @IsOptional()
+  @IsString()
+  tag?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

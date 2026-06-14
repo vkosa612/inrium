@@ -41,14 +41,20 @@ export class ContentService {
   // ── Public reads ───────────────────────────────────────────────────────────
 
   async list(query: ContentQueryDto) {
-    const { type, page = 1, limit = 12, category, search } = query;
+    const { type, page = 1, limit = 12, category, tag, search } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.ContentItemWhereInput = {
       status: ContentStatus.PUBLISHED,
       ...(type && { type }),
       ...(category && { category: { slug: category } }),
-      ...(search && { title: { contains: search, mode: 'insensitive' } }),
+      ...(tag && { tags: { some: { tag: { slug: tag } } } }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { excerpt: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
     };
 
     const [items, total] = await Promise.all([

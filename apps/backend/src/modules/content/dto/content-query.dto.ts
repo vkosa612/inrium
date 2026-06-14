@@ -29,6 +29,11 @@ export class ContentQueryDto {
   @IsString()
   category?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by tag slug' })
+  @IsOptional()
+  @IsString()
+  tag?: string;
+
   @ApiPropertyOptional({ description: 'Search in title' })
   @IsOptional()
   @IsString()

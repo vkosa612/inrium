@@ -4,15 +4,25 @@ import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class KitQueryDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Search in title' })
   @IsOptional()
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Filter by system ID (UUID or cuid)' })
   @IsOptional()
   @IsString()
   systemId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by system slug', example: 'dnd-5e' })
+  @IsOptional()
+  @IsString()
+  system?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by category', example: 'Стартовий' })
+  @IsOptional()
+  @IsString()
+  category?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

@@ -1,11 +1,10 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import FilterBar from '@/components/FilterBar';
 import { fetchContent, type ContentItem } from '@/lib/api';
-import { LATEST_NEWS } from '@/lib/mock-data';
 
-// Always render at request time so fresh data is fetched from API
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
@@ -13,110 +12,29 @@ export const metadata: Metadata = {
   description: 'Останні новини зі світу настільних рольових ігор',
 };
 
-const TYPE_COLOR: Record<string, string> = {
-  NEWS: '#f59e0b',
-  ARTICLE: '#ec4899',
-  GAME_SYSTEM: '#22d3ee',
-  KIT: '#10b981',
-  HELP_PAGE: '#f97316',
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  NEWS: 'Новини',
-  ARTICLE: 'Стаття',
-  GAME_SYSTEM: 'Система',
-  KIT: 'Набір',
-  HELP_PAGE: 'Допомога',
-};
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('uk-UA', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+function formatDate(d: string | null) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function NewsCard({ item }: { item: ContentItem }) {
-  const color = TYPE_COLOR[item.type] ?? '#a78bfa';
-  const label = TYPE_LABEL[item.type] ?? item.type;
-  const date = formatDate(item.publishedAt ?? item.createdAt);
-
   return (
     <Link href={`/content/${item.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <article
-        className="card-hover"
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          padding: '20px 24px',
-          cursor: 'pointer',
-        }}
-      >
+      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px', cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: color,
-              background: `${color}18`,
-              border: `1px solid ${color}30`,
-              padding: '3px 10px',
-              borderRadius: 20,
-            }}
-          >
-            {label}
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', padding: '3px 10px', borderRadius: 20 }}>
+            Новини
           </span>
-          {item.isFeatured && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--accent)',
-                background: 'rgba(139,92,246,0.1)',
-                border: '1px solid rgba(139,92,246,0.25)',
-                padding: '3px 10px',
-                borderRadius: 20,
-              }}
-            >
-              ★ Обране
-            </span>
-          )}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
-            {date}
-          </span>
+          {item.isFeatured && <span style={{ fontSize: 11, fontWeight: 600, color: '#a78bfa' }}>★ Обране</span>}
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(item.publishedAt ?? item.createdAt)}</span>
         </div>
-
-        <h2
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: 'var(--text)',
-            marginBottom: 8,
-            lineHeight: 1.35,
-          }}
-        >
-          {item.title}
-        </h2>
-
-        {item.excerpt && (
-          <p
-            className="line-clamp-2"
-            style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.6 }}
-          >
-            {item.excerpt}
-          </p>
-        )}
-
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8, lineHeight: 1.35 }}>{item.title}</h2>
+        {item.excerpt && <p className="line-clamp-2" style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.6 }}>{item.excerpt}</p>}
         {(item.author || item.category) && (
-          <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)' }}>
-            {item.author?.displayName}
-            {item.author && item.category && ' · '}
-            {item.category?.name}
+          <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 8 }}>
+            {item.author && <span>{item.author.displayName}</span>}
+            {item.author && item.category && <span>·</span>}
+            {item.category && <span>{item.category.name}</span>}
           </div>
         )}
       </article>
@@ -124,79 +42,64 @@ function NewsCard({ item }: { item: ContentItem }) {
   );
 }
 
-const MOCK_ITEMS: ContentItem[] = LATEST_NEWS.map((a, i) => ({
-  id: a.id,
-  slug: a.id,
-  type: 'NEWS',
-  status: 'PUBLISHED',
-  title: a.title,
-  excerpt: a.excerpt,
-  coverImageUrl: null,
-  isFeatured: false,
-  publishedAt: new Date(Date.now() - i * 86400000).toISOString(),
-  createdAt: new Date().toISOString(),
-  author: null,
-  category: null,
-  tags: [],
-}));
+interface Props {
+  searchParams: Promise<{ category?: string; tag?: string; search?: string }>;
+}
 
-export default async function NewsPage() {
+export default async function NewsPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const { category, tag, search } = sp;
+
   let items: ContentItem[] = [];
   let total = 0;
-  let fromApi = true;
 
   try {
-    const result = await fetchContent({ type: 'NEWS', limit: 20 });
+    const result = await fetchContent({ type: 'NEWS', limit: 30, category, tag, search });
     items = result.items;
     total = result.total;
-  } catch {
-    items = MOCK_ITEMS;
-    total = MOCK_ITEMS.length;
-    fromApi = false;
-  }
+  } catch { /* non-critical */ }
+
+  const activeFilters: Record<string, string | undefined> = { category, tag, search };
 
   return (
     <>
       <Header />
       <main style={{ minHeight: '100vh' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <div style={{ width: 3, height: 28, background: '#f59e0b', borderRadius: 2 }} />
-              <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-                Новини
-              </h1>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-muted)',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  padding: '2px 10px',
-                  borderRadius: 20,
-                }}
-              >
-                {total}
-              </span>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Новини</h1>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)', background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '2px 10px', borderRadius: 20 }}>{total}</span>
             </div>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-              Останні події зі світу настільних рольових ігор
-              {!fromApi && (
-                <span style={{ color: '#f59e0b', marginLeft: 8 }}>· Показано демо-дані</span>
-              )}
-            </p>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Останні події зі світу настільних рольових ігор</p>
           </div>
 
+          <FilterBar
+            accentColor="#f59e0b"
+            activeValues={activeFilters}
+            fields={[
+              { param: 'search', placeholder: 'Пошук по новинах…', type: 'text' },
+              { param: 'category', placeholder: 'Всі категорії', options: [
+                { label: 'Анонси', value: 'announcements' },
+                { label: 'Огляди', value: 'reviews' },
+                { label: 'Новинки', value: 'releases' },
+                { label: 'Спільнота', value: 'community' },
+              ]},
+            ]}
+          />
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {items.map((item) => (
-              <NewsCard key={item.id} item={item} />
-            ))}
+            {items.map((item) => <NewsCard key={item.id} item={item} />)}
           </div>
 
           {items.length === 0 && (
             <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
-              <p>Новин поки немає</p>
+              <p style={{ marginBottom: 12 }}>{search || category || tag ? 'Нічого не знайдено за фільтрами' : 'Новин поки немає'}</p>
+              {(search || category || tag) && (
+                <Link href="/news" style={{ fontSize: 13, color: '#f59e0b', textDecoration: 'none' }}>← Скинути фільтри</Link>
+              )}
             </div>
           )}
         </div>

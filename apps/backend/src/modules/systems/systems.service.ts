@@ -47,12 +47,20 @@ export class SystemsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: SystemQueryDto) {
-    const { page = 1, limit = 20, search } = query;
+    const { page = 1, limit = 20, search, genre, complexity, tag } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.GameSystemWhereInput = {
       status: ContentStatus.PUBLISHED,
-      ...(search && { title: { contains: search, mode: 'insensitive' } }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { shortDescription: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+      ...(genre && { genre: { contains: genre, mode: 'insensitive' } }),
+      ...(complexity && { complexity: { contains: complexity, mode: 'insensitive' } }),
+      ...(tag && { tags: { has: tag } }),
     };
 
     const [items, total] = await Promise.all([

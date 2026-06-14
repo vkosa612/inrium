@@ -97,6 +97,7 @@ export interface ContentQuery {
   page?: number;
   limit?: number;
   category?: string;
+  tag?: string;
   search?: string;
 }
 
@@ -341,7 +342,7 @@ export interface CreateSystemPayload {
 }
 export type UpdateSystemPayload = Partial<CreateSystemPayload>;
 
-export async function apiGetSystems(query: { search?: string; page?: number; limit?: number } = {}): Promise<SystemList> {
+export async function apiGetSystems(query: { search?: string; genre?: string; complexity?: string; tag?: string; page?: number; limit?: number } = {}): Promise<SystemList> {
   const qs = buildQuery(query as Record<string, string | number | undefined>);
   return apiFetch<SystemList>(`/systems${qs}`, { cache: 'no-store' });
 }
@@ -421,7 +422,7 @@ export interface CreateKitPayload {
 }
 export type UpdateKitPayload = Partial<CreateKitPayload>;
 
-export async function apiGetKits(query: { search?: string; systemId?: string; page?: number; limit?: number } = {}): Promise<KitList> {
+export async function apiGetKits(query: { search?: string; systemId?: string; system?: string; category?: string; page?: number; limit?: number } = {}): Promise<KitList> {
   const qs = buildQuery(query as Record<string, string | number | undefined>);
   return apiFetch<KitList>(`/kits${qs}`, { cache: 'no-store' });
 }

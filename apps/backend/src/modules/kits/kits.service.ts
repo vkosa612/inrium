@@ -37,13 +37,15 @@ export class KitsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: KitQueryDto) {
-    const { page = 1, limit = 20, search, systemId } = query;
+    const { page = 1, limit = 20, search, systemId, system, category } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.KitWhereInput = {
       status: ContentStatus.PUBLISHED,
       ...(search && { title: { contains: search, mode: 'insensitive' } }),
       ...(systemId && { systemId }),
+      ...(system && { system: { slug: system } }),
+      ...(category && { category: { contains: category, mode: 'insensitive' } }),
     };
 
     const [items, total] = await Promise.all([
