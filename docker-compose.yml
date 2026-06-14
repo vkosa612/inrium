@@ -54,6 +54,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Override for server-side rendering inside Docker network
+      BACKEND_URL: http://backend:4200/api
     ports:
       - '3000:3000'
     depends_on:

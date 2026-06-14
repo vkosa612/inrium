@@ -8,6 +8,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { ContentModule } from './modules/content/content.module';
 import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -34,6 +35,7 @@ import { PrismaModule } from './prisma/prisma.module';
 
     PrismaModule,
     AuthModule,
+    ContentModule,
     HealthModule,
   ],
 
