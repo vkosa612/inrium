@@ -11,6 +11,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { ContentModule } from './modules/content/content.module';
 import { SystemsModule } from './modules/systems/systems.module';
 import { KitsModule } from './modules/kits/kits.module';
+import { HomeModule } from './modules/home/home.module';
 import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -40,6 +41,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ContentModule,
     SystemsModule,
     KitsModule,
+    HomeModule,
     HealthModule,
   ],
 

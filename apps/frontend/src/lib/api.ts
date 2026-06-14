@@ -458,3 +458,49 @@ export async function apiDeleteKit(id: string): Promise<void> {
     throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
   }
 }
+
+// ─── Home ─────────────────────────────────────────────────────────────────────
+
+export interface HomeStats {
+  news: number;
+  articles: number;
+  systems: number;
+  kits: number;
+}
+
+export interface HomeData {
+  featured: ContentItem[];
+  latestNews: ContentItem[];
+  latestArticles: ContentItem[];
+  systems: GameSystem[];
+  kits: Kit[];
+  stats: HomeStats;
+}
+
+export async function apiGetHome(): Promise<HomeData> {
+  return apiFetch<HomeData>('/home', { cache: 'no-store' });
+}
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+
+export interface SearchResult {
+  id: string;
+  type: 'content' | 'system' | 'kit';
+  subtype: string | null;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  url: string;
+  updatedAt: string;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  total: number;
+  query: string;
+}
+
+export async function apiSearch(q: string): Promise<SearchResponse> {
+  const qs = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
+  return apiFetch<SearchResponse>(`/search${qs}`, { cache: 'no-store' });
+}

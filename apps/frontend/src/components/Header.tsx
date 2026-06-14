@@ -114,36 +114,30 @@ export default function Header() {
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {/* Search */}
-          <button
-            type="button"
+          {/* Search link */}
+          <a
+            href="/search"
             aria-label="Пошук"
             style={{
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
+              width: 36, height: 36, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border)',
+              background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer',
+              textDecoration: 'none',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-bright)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text)';
+              (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border-bright)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)';
+              (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-muted)';
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
-          </button>
+          </a>
 
           {/* ── Auth section ─────────────────────────────────── */}
           {isLoading ? (
