@@ -3,13 +3,17 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
+import PaginationWrapper from '@/components/PaginationWrapper';
 import { apiGetKits, apiGetSystems, type Kit } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
+const ITEMS_PER_PAGE = 12;
+
 export const metadata: Metadata = {
   title: 'Набори — INRIUM',
   description: 'Стартові набори, набори GM та гравця для настільних рольових ігор',
+  openGraph: { title: 'Набори — INRIUM', description: 'Стартові набори, набори GM та гравця для настільних рольових ігор', type: 'website' },
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -52,24 +56,31 @@ function KitCard({ kit }: { kit: Kit }) {
 }
 
 interface Props {
-  searchParams: Promise<{ category?: string; system?: string; search?: string }>;
+  searchParams: Promise<{ category?: string; system?: string; search?: string; page?: string }>;
 }
 
 export default async function KitsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const { category, system, search } = sp;
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   let kits: Kit[] = [];
   let total = 0;
+  let totalPages = 1;
+  let hasNextPage = false;
+  let hasPrevPage = false;
   let systemOptions: { label: string; value: string }[] = [];
 
   try {
     const [kitsResult, systemsResult] = await Promise.all([
-      apiGetKits({ category, system, search, limit: 30 }),
+      apiGetKits({ category, system, search, page, limit: ITEMS_PER_PAGE }),
       apiGetSystems({ limit: 50 }),
     ]);
     kits = kitsResult.items;
     total = kitsResult.total;
+    totalPages = kitsResult.totalPages;
+    hasNextPage = kitsResult.hasNextPage ?? false;
+    hasPrevPage = kitsResult.hasPrevPage ?? false;
     systemOptions = systemsResult.items.map((s) => ({ label: s.title, value: s.slug }));
   } catch { /* non-critical */ }
 
@@ -124,6 +135,14 @@ export default async function KitsPage({ searchParams }: Props) {
               )}
             </div>
           )}
+
+          <PaginationWrapper
+            page={page}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            accentColor="#10b981"
+          />
         </div>
       </main>
       <Footer />

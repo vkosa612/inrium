@@ -1,10 +1,36 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { apiGetSystemBySlug } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const system = await apiGetSystemBySlug(slug);
+    const description = system.shortDescription ?? `Ігрова система ${system.title} — огляд, правила, складність`;
+    return {
+      title: `${system.title} — Ігрові системи — INRIUM`,
+      description,
+      alternates: { canonical: `${BASE_URL}/systems/${slug}` },
+      openGraph: {
+        title: system.title,
+        description,
+        url: `${BASE_URL}/systems/${slug}`,
+        type: 'article',
+        ...(system.imageUrl ? { images: [{ url: system.imageUrl, alt: system.title }] } : {}),
+      },
+      twitter: { card: 'summary_large_image', title: system.title, description },
+    };
+  } catch {
+    return { title: 'Ігрова система — INRIUM' };
+  }
+}
 
 const COMPLEXITY_COLOR: Record<string, string> = {
   'Початківець': '#10b981',

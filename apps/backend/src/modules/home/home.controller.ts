@@ -21,4 +21,10 @@ export class HomeController {
   search(@Query() query: SearchQueryDto) {
     return this.homeService.search(query.q ?? '');
   }
+
+  @Get('sitemap')
+  @ApiOperation({ summary: 'All published URLs for sitemap generation' })
+  getSitemap() {
+    return this.homeService.getSitemap();
+  }
 }

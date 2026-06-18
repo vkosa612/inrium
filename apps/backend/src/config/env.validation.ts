@@ -35,6 +35,9 @@ export const envValidationSchema = Joi.object({
   // Rate limiting
   THROTTLE_TTL: Joi.number().default(60000),
   THROTTLE_LIMIT: Joi.number().default(100),
+
+  // Feature flags
+  SWAGGER_ENABLED: Joi.string().valid('true', 'false').default('true'),
 }).options({
   allowUnknown: true,
   abortEarly: false,

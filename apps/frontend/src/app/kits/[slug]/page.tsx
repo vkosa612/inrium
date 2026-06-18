@@ -1,10 +1,36 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { apiGetKitBySlug } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const kit = await apiGetKitBySlug(slug);
+    const description = kit.shortDescription ?? `Набір ${kit.title} для настільних рольових ігор`;
+    return {
+      title: `${kit.title} — Набори — INRIUM`,
+      description,
+      alternates: { canonical: `${BASE_URL}/kits/${slug}` },
+      openGraph: {
+        title: kit.title,
+        description,
+        url: `${BASE_URL}/kits/${slug}`,
+        type: 'article',
+        ...(kit.imageUrl ? { images: [{ url: kit.imageUrl, alt: kit.title }] } : {}),
+      },
+      twitter: { card: 'summary_large_image', title: kit.title, description },
+    };
+  } catch {
+    return { title: 'Набір — INRIUM' };
+  }
+}
 
 const CATEGORY_COLOR: Record<string, string> = {
   'Стартовий': '#10b981',

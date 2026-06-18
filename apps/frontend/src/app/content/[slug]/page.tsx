@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -6,6 +7,32 @@ import MarkdownContent from '@/components/MarkdownContent';
 import { fetchContentBySlug, fetchContent } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const item = await fetchContentBySlug(slug);
+    const description = item.excerpt ?? `Матеріал "${item.title}" на INRIUM`;
+    const image = item.coverImageUrl;
+    return {
+      title: `${item.title} — INRIUM`,
+      description,
+      alternates: { canonical: `${BASE_URL}/content/${slug}` },
+      openGraph: {
+        title: item.title,
+        description,
+        url: `${BASE_URL}/content/${slug}`,
+        type: 'article',
+        ...(image ? { images: [{ url: image, alt: item.title }] } : {}),
+      },
+      twitter: { card: 'summary_large_image', title: item.title, description },
+    };
+  } catch {
+    return { title: 'Матеріал — INRIUM' };
+  }
+}
 
 const TYPE_LABEL: Record<string, string> = {
   NEWS: 'Новини', ARTICLE: 'Стаття', GAME_SYSTEM: 'Ігрова система',

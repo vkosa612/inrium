@@ -3,13 +3,21 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
+import PaginationWrapper from '@/components/PaginationWrapper';
 import { apiGetHelp, type ContentItem } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
+const ITEMS_PER_PAGE = 12;
+
 export const metadata: Metadata = {
   title: 'Довідка — INRIUM',
   description: 'База знань INRIUM: як почати грати, ролі, ігрові системи, набори та відповіді на часті питання',
+  openGraph: {
+    title: 'Довідка — INRIUM',
+    description: 'База знань INRIUM: як почати грати, ролі, ігрові системи, набори та відповіді на часті питання',
+    type: 'website',
+  },
 };
 
 function formatDate(d: string | null) {
@@ -50,20 +58,27 @@ function HelpCard({ item }: { item: ContentItem }) {
 }
 
 interface Props {
-  searchParams: Promise<{ category?: string; search?: string }>;
+  searchParams: Promise<{ category?: string; search?: string; page?: string }>;
 }
 
 export default async function HelpPage({ searchParams }: Props) {
   const sp = await searchParams;
   const { category, search } = sp;
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   let items: ContentItem[] = [];
   let total = 0;
+  let totalPages = 1;
+  let hasNextPage = false;
+  let hasPrevPage = false;
 
   try {
-    const result = await apiGetHelp({ category, search, limit: 50 });
+    const result = await apiGetHelp({ category, search, page, limit: ITEMS_PER_PAGE });
     items = result.items;
     total = result.total;
+    totalPages = result.totalPages;
+    hasNextPage = result.hasNextPage ?? false;
+    hasPrevPage = result.hasPrevPage ?? false;
   } catch { /* non-critical */ }
 
   // Separate featured from others
@@ -142,6 +157,14 @@ export default async function HelpPage({ searchParams }: Props) {
               )}
             </div>
           )}
+
+          <PaginationWrapper
+            page={page}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            accentColor="#f7971f"
+          />
         </div>
       </main>
       <Footer />

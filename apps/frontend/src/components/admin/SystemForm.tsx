@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GameSystemFull, CreateSystemPayload, ContentStatus } from '@/lib/api';
 import { apiCreateSystem, apiUpdateSystem } from '@/lib/api';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 const STATUS_OPTIONS: { value: ContentStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Чернетка' },
@@ -126,10 +127,13 @@ export default function SystemForm({ initial }: SystemFormProps) {
         <label style={labelStyle}>Короткий опис</label>
         <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} placeholder="Коротка анотація (до 512 символів)" />
       </div>
-      <div>
-        <label style={labelStyle}>Повний опис *</label>
-        <textarea style={{ ...inputStyle, minHeight: 280, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6 }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Детальний опис системи..." required />
-      </div>
+      <MarkdownEditor
+        label="Повний опис *"
+        value={description}
+        onChange={setDescription}
+        placeholder="Детальний опис системи у форматі Markdown..."
+        minHeight={300}
+      />
       <div>
         <label style={labelStyle}>Теги (через кому)</label>
         <input style={inputStyle} value={tags} onChange={(e) => setTags(e.target.value)} placeholder="фентезі, класика, пригоди" />

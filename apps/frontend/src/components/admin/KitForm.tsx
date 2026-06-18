@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { KitFull, CreateKitPayload, ContentStatus, GameSystem } from '@/lib/api';
 import { apiCreateKit, apiUpdateKit, apiGetSystems } from '@/lib/api';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 const STATUS_OPTIONS: { value: ContentStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Чернетка' },
@@ -131,10 +132,13 @@ export default function KitForm({ initial }: KitFormProps) {
         <label style={labelStyle}>Короткий опис</label>
         <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} placeholder="Коротка анотація" />
       </div>
-      <div>
-        <label style={labelStyle}>Повний опис *</label>
-        <textarea style={{ ...inputStyle, minHeight: 280, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6 }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Детальний опис набору..." required />
-      </div>
+      <MarkdownEditor
+        label="Повний опис *"
+        value={description}
+        onChange={setDescription}
+        placeholder="Детальний опис набору у форматі Markdown..."
+        minHeight={300}
+      />
       <div>
         <label style={labelStyle}>URL зображення</label>
         <input style={inputStyle} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" type="url" />

@@ -1,9 +1,20 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { apiGetHome, type HomeData, type ContentItem, type GameSystem, type Kit, type HelpItem } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'INRIUM — платформа для настільних рольових ігор',
+  description: 'INRIUM — ігрові системи, набори, новини та матеріали для гравців і майстрів TTRPG.',
+  openGraph: {
+    title: 'INRIUM — платформа для настільних рольових ігор',
+    description: 'INRIUM — ігрові системи, набори, новини та матеріали для гравців і майстрів TTRPG.',
+    type: 'website',
+  },
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

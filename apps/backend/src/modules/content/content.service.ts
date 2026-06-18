@@ -68,7 +68,7 @@ export class ContentService {
       this.prisma.contentItem.count({ where }),
     ]);
 
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit), hasNextPage: page * limit < total, hasPrevPage: page > 1 };
   }
 
   async findBySlug(slug: string) {
@@ -117,7 +117,7 @@ export class ContentService {
       this.prisma.contentItem.count({ where }),
     ]);
 
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit), hasNextPage: page * limit < total, hasPrevPage: page > 1 };
   }
 
   async findByIdAdmin(id: string) {

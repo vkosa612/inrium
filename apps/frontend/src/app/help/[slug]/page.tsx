@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -6,6 +7,30 @@ import MarkdownContent from '@/components/MarkdownContent';
 import { apiGetHelpBySlug, apiGetHelp } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const item = await apiGetHelpBySlug(slug);
+    const description = item.excerpt ?? `Довідка: ${item.title}`;
+    return {
+      title: `${item.title} — Довідка — INRIUM`,
+      description,
+      alternates: { canonical: `${BASE_URL}/help/${slug}` },
+      openGraph: {
+        title: item.title,
+        description,
+        url: `${BASE_URL}/help/${slug}`,
+        type: 'article',
+      },
+      twitter: { card: 'summary', title: item.title, description },
+    };
+  } catch {
+    return { title: 'Довідка — INRIUM' };
+  }
+}
 
 function formatDate(d: string | null) {
   if (!d) return '';

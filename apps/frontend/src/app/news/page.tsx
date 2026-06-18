@@ -3,13 +3,21 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
+import PaginationWrapper from '@/components/PaginationWrapper';
 import { fetchContent, type ContentItem } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
+const ITEMS_PER_PAGE = 10;
+
 export const metadata: Metadata = {
   title: 'Новини — INRIUM',
   description: 'Останні новини зі світу настільних рольових ігор',
+  openGraph: {
+    title: 'Новини — INRIUM',
+    description: 'Останні новини зі світу настільних рольових ігор',
+    type: 'website',
+  },
 };
 
 function formatDate(d: string | null) {
@@ -43,20 +51,27 @@ function NewsCard({ item }: { item: ContentItem }) {
 }
 
 interface Props {
-  searchParams: Promise<{ category?: string; tag?: string; search?: string }>;
+  searchParams: Promise<{ category?: string; tag?: string; search?: string; page?: string }>;
 }
 
 export default async function NewsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const { category, tag, search } = sp;
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   let items: ContentItem[] = [];
   let total = 0;
+  let totalPages = 1;
+  let hasNextPage = false;
+  let hasPrevPage = false;
 
   try {
-    const result = await fetchContent({ type: 'NEWS', limit: 30, category, tag, search });
+    const result = await fetchContent({ type: 'NEWS', limit: ITEMS_PER_PAGE, page, category, tag, search });
     items = result.items;
     total = result.total;
+    totalPages = result.totalPages;
+    hasNextPage = result.hasNextPage ?? false;
+    hasPrevPage = result.hasPrevPage ?? false;
   } catch { /* non-critical */ }
 
   const activeFilters: Record<string, string | undefined> = { category, tag, search };
@@ -102,6 +117,14 @@ export default async function NewsPage({ searchParams }: Props) {
               )}
             </div>
           )}
+
+          <PaginationWrapper
+            page={page}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            accentColor="#f59e0b"
+          />
         </div>
       </main>
       <Footer />

@@ -84,12 +84,17 @@ export interface ContentItemFull extends ContentItem {
   content: string;
 }
 
-export interface ContentList {
-  items: ContentItem[];
+export interface PaginatedList {
   total: number;
   page: number;
   limit: number;
   totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface ContentList extends PaginatedList {
+  items: ContentItem[];
 }
 
 export interface ContentQuery {
@@ -321,12 +326,8 @@ export interface GameSystemFull extends GameSystem {
   }>;
 }
 
-export interface SystemList {
+export interface SystemList extends PaginatedList {
   items: GameSystem[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export interface CreateSystemPayload {
@@ -401,12 +402,8 @@ export interface KitFull extends Kit {
   description: string;
 }
 
-export interface KitList {
+export interface KitList extends PaginatedList {
   items: Kit[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export interface CreateKitPayload {
@@ -520,12 +517,8 @@ export async function apiSearch(q: string): Promise<SearchResponse> {
 
 // ─── Help ─────────────────────────────────────────────────────────────────────
 
-export interface HelpList {
+export interface HelpList extends PaginatedList {
   items: ContentItem[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export async function apiGetHelp(
@@ -537,4 +530,17 @@ export async function apiGetHelp(
 
 export async function apiGetHelpBySlug(slug: string): Promise<ContentItemFull> {
   return apiFetch<ContentItemFull>(`/help/${slug}`, { cache: 'no-store' });
+}
+
+// ─── Sitemap ──────────────────────────────────────────────────────────────────
+
+export interface SitemapData {
+  content: Array<{ slug: string; updatedAt: string }>;
+  help: Array<{ slug: string; updatedAt: string }>;
+  systems: Array<{ slug: string; updatedAt: string }>;
+  kits: Array<{ slug: string; updatedAt: string }>;
+}
+
+export async function apiGetSitemap(): Promise<SitemapData> {
+  return apiFetch<SitemapData>('/sitemap', { next: { revalidate: 3600 } });
 }

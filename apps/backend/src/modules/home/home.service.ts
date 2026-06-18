@@ -103,6 +103,39 @@ export class HomeService {
     };
   }
 
+  async getSitemap() {
+    const PUBLISHED = ContentStatus.PUBLISHED;
+
+    const [contentItems, systems, kits] = await Promise.all([
+      this.prisma.contentItem.findMany({
+        where: { status: PUBLISHED },
+        select: { slug: true, type: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.gameSystem.findMany({
+        where: { status: PUBLISHED },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.kit.findMany({
+        where: { status: PUBLISHED },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      content: contentItems
+        .filter((i) => i.type !== ContentType.HELP_PAGE)
+        .map((i) => ({ slug: i.slug, updatedAt: i.updatedAt.toISOString() })),
+      help: contentItems
+        .filter((i) => i.type === ContentType.HELP_PAGE)
+        .map((i) => ({ slug: i.slug, updatedAt: i.updatedAt.toISOString() })),
+      systems: systems.map((s) => ({ slug: s.slug, updatedAt: s.updatedAt.toISOString() })),
+      kits: kits.map((k) => ({ slug: k.slug, updatedAt: k.updatedAt.toISOString() })),
+    };
+  }
+
   async search(q: string) {
     const query = (q ?? '').trim();
     if (query.length < 2) return { results: [], total: 0, query };

@@ -59,7 +59,7 @@ export class KitsService {
       this.prisma.kit.count({ where }),
     ]);
 
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit), hasNextPage: page * limit < total, hasPrevPage: page > 1 };
   }
 
   async findBySlug(slug: string) {
@@ -92,7 +92,7 @@ export class KitsService {
       this.prisma.kit.count({ where }),
     ]);
 
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit), hasNextPage: page * limit < total, hasPrevPage: page > 1 };
   }
 
   async findByIdAdmin(id: string) {

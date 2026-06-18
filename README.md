@@ -10,32 +10,34 @@
 | Backend | NestJS 11, Fastify, TypeScript |
 | Database | PostgreSQL 16, Prisma ORM 6 |
 | Security | @fastify/helmet, @nestjs/throttler, class-validator |
-| Infra | Docker Compose, pnpm workspaces, Adminer |
+| Infra | Docker Compose, pnpm workspaces |
 
-## Швидкий старт
+## Швидкий старт (local dev)
 
 ```bash
 # 1. Скопіювати конфіг
 cp .env.example .env
 
-# 2. Запустити весь стек
-docker compose up --build
+# 2. Запустити весь стек (frontend + backend + postgres)
+docker compose up --build -d
 
-# 3. Першого разу — застосувати міграцію та засіяти БД
-docker compose exec backend pnpm exec prisma migrate dev --name init_schema
-docker compose exec backend pnpm exec prisma db seed
+# З Adminer для роботи з БД:
+docker compose --profile tools up -d
+
+# 3. Першого разу — засіяти БД (міграції застосовуються автоматично)
+docker compose exec backend sh -c "cd /app/apps/backend && node_modules/.bin/ts-node -P prisma/tsconfig.seed.json prisma/seed.ts"
 ```
 
 ## Сервіси після запуску
 
-| Сервіс | URL |
-|--------|-----|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:4200/api |
-| Health check | http://localhost:4200/api/health |
-| Swagger | http://localhost:4200/api/docs |
-| Adminer (БД) | http://localhost:8080 |
-| PostgreSQL | localhost:5432 |
+| Сервіс | URL | Видимість |
+|--------|-----|-----------|
+| Frontend | http://localhost:3000 | ✅ Публічний |
+| Backend API | http://localhost:4200/api | ✅ Публічний (dev) |
+| Health check | http://localhost:4200/api/health | ✅ Завжди |
+| Swagger | http://localhost:4200/api/docs | ⚠️ Тільки якщо `SWAGGER_ENABLED=true` |
+| Adminer (БД) | http://localhost:8080 | 🔒 Тільки localhost (`--profile tools`) |
+| PostgreSQL | localhost:5432 | 🔒 Тільки localhost |
 
 ### Adminer — підключення до БД
 
@@ -44,6 +46,66 @@ docker compose exec backend pnpm exec prisma db seed
 - **Користувач:** `inrium`
 - **Пароль:** `inrium_password`
 - **База:** `inrium`
+
+---
+
+## 🔐 Безпека та публічний доступ
+
+### Які порти можна відкривати назовні
+
+| Порт | Сервіс | Відкривати? |
+|------|--------|-------------|
+| 3000 | Frontend (Next.js) | ✅ Так |
+| 4200 | Backend API | ⚠️ Тільки якщо потрібен прямий доступ |
+| 5432 | PostgreSQL | ❌ Ніколи |
+| 8080 | Adminer | ❌ Ніколи |
+
+### Налаштування для публічного тесту (відкрити тимчасово назовні)
+
+```bash
+# У .env:
+NODE_ENV=production
+SWAGGER_ENABLED=false           # вимкнути Swagger docs
+CORS_ORIGIN=http://your-ip:3000 # дозволити тільки ваш фронтенд
+NEXT_PUBLIC_API_URL=http://your-ip:4200/api
+NEXT_PUBLIC_SITE_URL=http://your-ip:3000
+
+# Якщо хочеш захистити backend від прямого LAN-доступу:
+BACKEND_BIND=127.0.0.1          # backend слухає тільки localhost
+
+# Запустити:
+docker compose up --build -d
+```
+
+> Якщо `BACKEND_BIND=127.0.0.1`, фронтенд і так зв'язується з backend через внутрішню Docker мережу (`http://backend:4200/api`). Браузер-запити через `NEXT_PUBLIC_API_URL` не потрібні, якщо всі API-запити йдуть через Server Components.
+
+### Перед публічним запуском — обов'язково
+
+- [ ] Змінити `JWT_ACCESS_SECRET` і `JWT_REFRESH_SECRET` (мінімум 32 символи)
+- [ ] Змінити паролі адміна/редактора (`SEED_ADMIN_PASSWORD`, `SEED_EDITOR_PASSWORD`)
+- [ ] Змінити пароль бази (`POSTGRES_PASSWORD`)
+- [ ] Встановити `SWAGGER_ENABLED=false`
+- [ ] Встановити `CORS_ORIGIN` тільки на дозволені домени
+- [ ] **Ніколи не комітити `.env` в git**
+- [ ] **Ніколи не відкривати порти 5432 та 8080 назовні**
+
+### Перевірка після запуску
+
+```bash
+# Публічні URL (мають повертати 200):
+curl http://localhost:3000/
+curl http://localhost:3000/sitemap.xml
+curl http://localhost:3000/robots.txt
+curl http://localhost:4200/api/health
+
+# Swagger (має повертати 404 якщо SWAGGER_ENABLED=false):
+curl http://localhost:4200/api/docs
+
+# Adminer (не має бути доступний з WAN, тільки localhost):
+# docker compose --profile tools up -d  # запустити тільки якщо потрібно
+```
+
+---
 
 ## pnpm / Docker scripts
 
@@ -64,8 +126,7 @@ pnpm --filter @inrium/backend prisma:studio      # Prisma Studio UI
 
 # або всередині контейнера:
 docker compose exec backend pnpm exec prisma migrate dev --name <назва>
-docker compose exec backend pnpm exec prisma db seed
-docker compose exec backend pnpm exec prisma studio
+docker compose exec backend sh -c "cd /app/apps/backend && node_modules/.bin/ts-node -P prisma/tsconfig.seed.json prisma/seed.ts"
 ```
 
 ## Структура проєкту
@@ -90,14 +151,16 @@ inrium/
 │   │       ├── config/
 │   │       │   └── env.validation.ts  # joi schema для .env
 │   │       ├── modules/
-│   │       │   └── health/
+│   │       │   └── health/            # GET /api/health (з DB check)
 │   │       └── prisma/                # PrismaService, PrismaModule
 │   └── frontend/
 │       └── src/
 │           ├── app/                   # Next.js App Router
-│           ├── components/            # Header, Hero, Cards, Footer…
+│           │   ├── sitemap.ts         # /sitemap.xml (динамічний)
+│           │   └── robots.ts          # /robots.txt
+│           ├── components/            # Header, Cards, Pagination, FilterBar…
 │           └── lib/
-│               └── mock-data.ts       # Тимчасові mock-дані
+│               └── api.ts             # API helpers
 ├── packages/
 │   └── shared/                        # Спільні типи (@inrium/shared)
 ├── docker/
@@ -105,7 +168,8 @@ inrium/
 │   ├── frontend.Dockerfile
 │   └── backend-entrypoint.sh          # generate + migrate deploy + start
 ├── docker-compose.yml
-├── .env.example
+├── .env.example                       # шаблон — комітити можна
+├── .env                               # ніколи не комітити!
 └── pnpm-workspace.yaml
 ```
 
@@ -113,131 +177,33 @@ inrium/
 
 ## Roadmap
 
-### ✅ Етап 1 — Базова структура і Docker
+### ✅ Реалізовано
 
 - [x] Monorepo (pnpm workspaces, `apps/*`, `packages/shared`)
-- [x] Docker Compose: postgres, adminer, backend, frontend
-- [x] Backend: `GET /api/health`, Swagger `/api/docs`
-- [x] Frontend: темна RPG/media portal сторінка (mock-data)
-- [x] Prisma: підключення до PostgreSQL (`PrismaService`)
-- [x] Shared: пакет `@inrium/shared` зі спільними типами
+- [x] Docker Compose: postgres, backend, frontend (adminer тільки через `--profile tools`)
+- [x] Backend: NestJS + Fastify, Prisma ORM, JWT auth, RBAC
+- [x] Auth: register/login/refresh/logout/me з httpOnly cookie
+- [x] CMS Admin: CRUD для content, systems, kits
+- [x] Content API: news, articles, help, systems, kits (публічні + admin)
+- [x] Markdown render (`react-markdown`)
+- [x] Пагінація для всіх list-сторінок
+- [x] Фільтри (category, tag, genre, complexity, system)
+- [x] Глобальний пошук `/api/search`
+- [x] SEO: `generateMetadata`, canonical, OpenGraph, Twitter cards
+- [x] Sitemap (`/sitemap.xml`) та robots.txt
+- [x] Health check `GET /api/health` з DB latency
+- [x] Rate limit: глобальний + суворіший для auth endpoints (10 req/min)
+- [x] Swagger умовно вимкнений через `SWAGGER_ENABLED=false`
+- [x] Postgres і Adminer тільки на `127.0.0.1` (не LAN/WAN)
 
----
+### 🔜 Наступні етапи
 
-### ✅ Етап 2 — Backend foundation / security / common layer
-
-- [x] Env validation при старті (`@nestjs/config` + `joi`) — обов'язкові змінні: `DATABASE_URL`, `CORS_ORIGIN`, `POSTGRES_*`
-- [x] Security headers (`@fastify/helmet`) — CSP, HSTS, X-Frame-Options та ін.
-- [x] Rate limiting (`@nestjs/throttler`) — глобально; `THROTTLE_TTL`/`THROTTLE_LIMIT` через `.env`
-- [x] Global `ValidationPipe` — `whitelist`, `forbidNonWhitelisted`, `transform`
-- [x] Global exception filter — уніфікований формат `{ success, statusCode, message, error, path, timestamp }` + Prisma error mapping
-- [x] Global response interceptor — уніфікований формат `{ success, data, timestamp }`; декоратор `@SkipResponseWrap()`
-- [x] Common layer: `common/filters`, `interceptors`, `decorators`, `dto`, `types`, `constants`
-- [x] Startup log: ENV, PORT, API URL, Swagger URL
-
----
-
-### ✅ Етап 3 — Prisma schema + initial migration + seed
-
-- [x] Повна Prisma schema: `User`, `ContentItem`, `Category`, `Tag`, `ContentTag`, `HomePageBlock`, `Game`
-- [x] Enums: `UserRole`, `UserStatus`, `ContentType`, `ContentStatus`, `HomePageBlockType`, `GameStatus`
-- [x] Індекси для пошуку/фільтрації по типу, статусу, featured, publishedAt
-- [x] Migration `init_schema` — застосована, файли зафіксовані в репозиторії
-- [x] Seed script (`bcryptjs`): 2 users, 5 categories, 10 tags, 12 content items, 6 home page blocks
-- [x] `prisma migrate deploy` в `backend-entrypoint.sh` — автозастосування міграцій при старті
-- [x] Volume mount `./apps/backend/prisma` — migration файли зберігаються на хості
-
----
-
-### 🔜 Етап 4 — Auth + RBAC foundation
-
-- [ ] `POST /api/auth/register`
-- [ ] `POST /api/auth/login`
-- [ ] `POST /api/auth/refresh`
-- [ ] `POST /api/auth/logout`
-- [ ] `GET /api/auth/me`
-- [ ] JWT access + refresh tokens (`@nestjs/jwt`)
-- [ ] Refresh token — зберігання хешу в БД (модель `Session` або поле у `User`)
-- [ ] `JwtAuthGuard` — перевірка access token
-- [ ] `RolesGuard` + декоратор `@Roles(UserRole.ADMIN)` — RBAC
-- [ ] `@Public()` декоратор для публічних маршрутів
-- [ ] Swagger: `addBearerAuth()` + `@ApiBearerAuth()` на захищених контролерах
-
----
-
-### 🔜 Етап 5 — CMS API (backend)
-
-- [ ] `ContentItemModule`: CRUD для всіх типів контенту
-- [ ] `GET /api/content?type=GAME_SYSTEM&status=PUBLISHED` — публічна вибірка
-- [ ] `POST /api/admin/content` — створення (EDITOR+)
-- [ ] `PATCH /api/admin/content/:id` — редагування
-- [ ] `DELETE /api/admin/content/:id` — видалення (ADMIN)
-- [ ] `PATCH /api/admin/content/:id/publish` — публікація
-- [ ] `PATCH /api/admin/content/:id/archive` — архівування
-- [ ] Фільтрація: тип, статус, featured, категорія, теги, пагінація
-- [ ] `CategoryModule`, `TagModule` — CRUD
-- [ ] `HomePageBlockModule` — керування блоками головної сторінки
-- [ ] Image upload — `POST /api/admin/upload` (local storage або S3-compatible)
-- [ ] Swagger-документація всіх endpoint-ів
-
----
-
-### 🔜 Етап 6 — Admin UI (CMS-адмінка)
-
-- [ ] Маршрут `/admin` (Next.js App Router або окремий Next.js app)
-- [ ] Захист `/admin` — лише EDITOR/ADMIN
-- [ ] Список матеріалів з фільтрацією, пошуком, пагінацією
-- [ ] CRUD-форми для ContentItem (markdown editor, image upload, slug auto-генерація)
-- [ ] Управління категоріями та тегами
-- [ ] Управління блоками головної сторінки (`HomePageBlock`)
-- [ ] Preview матеріалу перед публікацією
-- [ ] Dashboard: статистика (кількість матеріалів за типом/статусом)
-
----
-
-### 🔜 Етап 7 — Frontend → реальний API
-
-- [ ] Підключення TanStack Query до backend
-- [ ] Замінити `mock-data.ts` на реальні API-запити
-- [ ] `GET /api/content?type=GAME_SYSTEM&status=PUBLISHED` → SystemsGrid
-- [ ] `GET /api/content?type=KIT` → KitsGrid
-- [ ] `GET /api/content?type=NEWS` → MainFeed
-- [ ] `GET /api/content?isFeatured=true` → Hero / TopPicksPanel
-- [ ] `GET /api/homepage-blocks` → динамічна структура головної сторінки
-- [ ] Сторінки: `/articles/:slug`, `/systems/:slug`, `/kits/:slug`, `/help/:slug`
-- [ ] SEO: `generateMetadata`, Open Graph
-
----
-
-### 🔜 Етап 8 — Games / Sessions module
-
-- [ ] `GameModule`: CRUD ігрових сесій
-- [ ] `GET /api/games` — список відкритих ігор
-- [ ] `POST /api/games` — створити сесію (GAME_MASTER+)
-- [ ] `POST /api/games/:id/apply` — подати заявку (PLAYER)
-- [ ] `PATCH /api/games/:id/applications/:appId` — прийняти/відхилити заявку
-- [ ] Прив'язка до ігрової системи (ContentItem типу GAME_SYSTEM)
-- [ ] Сторінка `/games` на frontend
-
----
-
-### 🔜 Етап 9 — Profiles / Community
-
-- [ ] `GET /api/users/:id` — публічний профіль
-- [ ] `PATCH /api/users/me` — редагування профілю
-- [ ] Avatar upload
-- [ ] Сторінка `/profile/:id` на frontend
-
----
-
-### 🔜 Етап 10 — Production hardening
-
+- [ ] Профільна сторінка (`/profile`)
+- [ ] Markdown editor у CMS (SimpleMDE або CodeMirror)
+- [ ] Image upload для cover images
 - [ ] Redis для refresh tokens та rate limiting
-- [ ] Email verification при реєстрації
-- [ ] Password reset flow
+- [ ] Email verification
+- [ ] Nginx reverse proxy + HTTPS/SSL
 - [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Health checks для всіх сервісів
-- [ ] Logging (Pino або Winston)
-- [ ] Error tracking (Sentry або self-hosted Glitchtip)
-- [ ] Nginx reverse proxy
-- [ ] SSL / HTTPS
+- [ ] Logging (Pino)
+- [ ] Error tracking (Sentry або Glitchtip)

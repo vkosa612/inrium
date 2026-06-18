@@ -15,6 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -31,6 +32,9 @@ const COOKIE_BASE = {
   path: '/api/auth',
 };
 
+// Stricter rate limit for auth endpoints: max 10 requests per minute per IP
+const AUTH_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -40,6 +44,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle(AUTH_THROTTLE)
   @ApiOperation({ summary: 'Register a new account' })
   @ApiResponse({ status: 201, description: 'Registration successful' })
   @ApiResponse({ status: 409, description: 'Email already taken' })
@@ -60,6 +65,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
@@ -81,6 +87,7 @@ export class AuthController {
 
   @Public()
   @Post('refresh')
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Refresh access token',

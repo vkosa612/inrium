@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - '5432:5432'
+      # Bind only to localhost — not accessible from LAN/WAN
+      - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +22,11 @@ services:
     image: adminer:latest
     container_name: inrium-adminer
     restart: unless-stopped
+    profiles:
+      - tools
     ports:
-      - '8080:8080'
+      # Bind only to localhost — never expose to LAN/WAN
+      - '127.0.0.1:8080:8080'
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,13 +40,23 @@ services:
     env_file:
       - .env
     ports:
-      - '4200:4200'
+      - '${BACKEND_BIND:-0.0.0.0}:4200:4200'
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       # Mount prisma dir so migrations generated inside container persist to host
       - ./apps/backend/prisma:/app/apps/backend/prisma
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://localhost:4200/api/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
 
   frontend:
     build:
@@ -50,6 +64,7 @@ services:
       dockerfile: docker/frontend.Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     container_name: inrium-frontend
     restart: unless-stopped
     env_file:
@@ -60,7 +75,8 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:

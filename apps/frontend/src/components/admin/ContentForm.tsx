@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ContentItemAdmin, CreateContentPayload, ContentType, ContentStatus } from '@/lib/api';
 import { apiCreateContent, apiUpdateContent } from '@/lib/api';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 const TYPE_OPTIONS: { value: ContentType; label: string }[] = [
   { value: 'NEWS', label: 'Новини' },
@@ -194,16 +195,14 @@ export default function ContentForm({ initial }: ContentFormProps) {
       </div>
 
       {/* Content */}
-      <div>
-        <label style={labelStyle}>Текст матеріалу *</label>
-        <textarea
-          style={{ ...inputStyle, minHeight: 300, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6 }}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Повний текст матеріалу..."
-          required
-        />
-      </div>
+      <MarkdownEditor
+        label="Текст матеріалу *"
+        value={content}
+        onChange={setContent}
+        placeholder="Повний текст матеріалу у форматі Markdown..."
+        minHeight={340}
+        error={!content.trim() && saving ? 'Текст матеріалу обов\'язковий' : undefined}
+      />
 
       {/* Cover image */}
       <div>

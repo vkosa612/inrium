@@ -4,7 +4,9 @@ WORKDIR /app
 
 FROM base AS builder
 ARG NEXT_PUBLIC_API_URL=http://localhost:4200/api
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 COPY package.json pnpm-workspace.yaml .npmrc tsconfig.base.json ./
 COPY apps/frontend/package.json ./apps/frontend/
