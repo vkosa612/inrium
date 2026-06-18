@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MarkdownContent from '@/components/MarkdownContent';
+import BookmarkButton from '@/components/BookmarkButton';
 import { apiGetHelpBySlug, apiGetHelp } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
@@ -86,6 +87,10 @@ export default async function HelpSlugPage({ params }: Props) {
               </Link>
             )}
             <time style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{publishedDate}</time>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <BookmarkButton targetType="HELP" targetId={item.id} />
           </div>
 
           {/* Title */}

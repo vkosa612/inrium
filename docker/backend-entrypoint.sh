@@ -25,4 +25,5 @@ if [ ! -f "$ENTRY_FILE" ]; then
 fi
 
 echo "Starting INRIUM backend..."
+mkdir -p /app/uploads/images
 exec node "$ENTRY_FILE"

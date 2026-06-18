@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetSystemBySlug } from '@/lib/api';
+import { apiGetSystemBySlug, resolveAbsoluteMediaUrl, resolveMediaUrl } from '@/lib/api';
+import BookmarkButton from '@/components/BookmarkButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description,
         url: `${BASE_URL}/systems/${slug}`,
         type: 'article',
-        ...(system.imageUrl ? { images: [{ url: system.imageUrl, alt: system.title }] } : {}),
+        ...(resolveAbsoluteMediaUrl(system.imageUrl)
+          ? { images: [{ url: resolveAbsoluteMediaUrl(system.imageUrl)!, alt: system.title }] }
+          : {}),
       },
       twitter: { card: 'summary_large_image', title: system.title, description },
     };
@@ -71,10 +74,10 @@ export default async function SystemDetailPage({ params }: Props) {
           </nav>
 
           {/* Cover */}
-          {system.imageUrl && (
+          {resolveMediaUrl(system.imageUrl) && (
             <div style={{ width: '100%', height: 240, borderRadius: 16, overflow: 'hidden', marginBottom: 32 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={system.imageUrl} alt={system.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={resolveMediaUrl(system.imageUrl)!} alt={system.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 
@@ -93,6 +96,10 @@ export default async function SystemDetailPage({ params }: Props) {
             <span style={{ fontSize: 12, color: 'var(--text-muted)', padding: '4px 0' }}>
               {system.publishedAt ? new Date(system.publishedAt).toLocaleDateString('uk-UA', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
             </span>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <BookmarkButton targetType="SYSTEM" targetId={system.id} />
           </div>
 
           {/* Title */}

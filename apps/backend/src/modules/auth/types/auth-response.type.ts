@@ -8,6 +8,7 @@ export interface UserPublic {
   status: UserStatus;
   avatarUrl: string | null;
   bio: string | null;
+  emailVerified?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

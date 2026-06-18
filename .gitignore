@@ -30,6 +30,8 @@ Thumbs.db
 
 # docker
 postgres_data/
+uploads/*
+!uploads/.gitkeep
 
 # misc
 *.tsbuildinfo

@@ -8,12 +8,18 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
+import { CommunitiesModule } from './modules/communities/communities.module';
 import { ContentModule } from './modules/content/content.module';
-import { SystemsModule } from './modules/systems/systems.module';
-import { KitsModule } from './modules/kits/kits.module';
-import { HomeModule } from './modules/home/home.module';
-import { HelpModule } from './modules/help/help.module';
+import { GamesModule } from './modules/games/games.module';
 import { HealthModule } from './modules/health/health.module';
+import { HelpModule } from './modules/help/help.module';
+import { HomeBlocksModule } from './modules/home-blocks/home-blocks.module';
+import { HomeModule } from './modules/home/home.module';
+import { KitsModule } from './modules/kits/kits.module';
+import { SystemsModule } from './modules/systems/systems.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -45,33 +51,24 @@ import { PrismaModule } from './prisma/prisma.module';
     HomeModule,
     HelpModule,
     HealthModule,
+    UploadsModule,
+    UsersModule,
+    BookmarksModule,
+    GamesModule,
+    HomeBlocksModule,
+    CommunitiesModule,
   ],
 
   providers: [
-    // 1. Global exception filter
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
-
-    // 2. Global response interceptor
     {
       provide: APP_INTERCEPTOR,
       useFactory: (reflector: Reflector) => new ResponseInterceptor(reflector),
       inject: [Reflector],
     },
-
-    // 3. Rate-limit guard (runs first)
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-
-    // 4. JWT auth guard (checks @Public() to skip)
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-
-    // 5. Roles guard (runs after JwtAuthGuard sets request.user)
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

@@ -136,6 +136,8 @@ export interface AuthUser {
   role: 'PLAYER' | 'GAME_MASTER' | 'EDITOR' | 'ADMIN';
   status: 'ACTIVE' | 'BLOCKED' | 'DELETED';
   avatarUrl: string | null;
+  bio?: string | null;
+  createdAt?: string;
 }
 
 export interface AuthResult {
@@ -191,6 +193,145 @@ export function apiFetchAuth<T>(path: string, options?: RequestInit): Promise<T>
 /** Fetch current user from backend using stored access token. */
 export async function apiGetMe(): Promise<AuthUser> {
   return apiFetchAuth<AuthUser>('/auth/me');
+}
+
+export interface UpdateProfilePayload {
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string;
+}
+
+export async function apiUpdateProfile(payload: UpdateProfilePayload): Promise<AuthUser> {
+  return apiFetchAuth<AuthUser>('/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiChangePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  return apiFetchAuth<{ message: string }>('/users/me/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export type BookmarkTargetType = 'CONTENT' | 'HELP' | 'SYSTEM' | 'KIT';
+
+export interface BookmarkItem {
+  id: string;
+  targetType: BookmarkTargetType;
+  targetId: string;
+  createdAt: string;
+  title: string | null;
+  slug: string | null;
+  url: string | null;
+  excerpt: string | null;
+  imageUrl: string | null;
+  unavailable: boolean;
+}
+
+export interface BookmarkCheckResult {
+  bookmarked: boolean;
+  bookmarkId: string | null;
+}
+
+export async function apiGetBookmarks(): Promise<BookmarkItem[]> {
+  return apiFetchAuth<BookmarkItem[]>('/bookmarks');
+}
+
+export async function apiAddBookmark(
+  targetType: BookmarkTargetType,
+  targetId: string,
+): Promise<BookmarkItem> {
+  return apiFetchAuth<BookmarkItem>('/bookmarks', {
+    method: 'POST',
+    body: JSON.stringify({ targetType, targetId }),
+  });
+}
+
+export async function apiRemoveBookmark(bookmarkId: string): Promise<{ message: string }> {
+  return apiFetchAuth<{ message: string }>(`/bookmarks/${bookmarkId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function apiCheckBookmark(
+  targetType: BookmarkTargetType,
+  targetId: string,
+): Promise<BookmarkCheckResult> {
+  const qs = `?targetType=${encodeURIComponent(targetType)}&targetId=${encodeURIComponent(targetId)}`;
+  return apiFetchAuth<BookmarkCheckResult>(`/bookmarks/check${qs}`);
+}
+
+// ─── Uploads ──────────────────────────────────────────────────────────────────
+
+export interface UploadImageResult {
+  url: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
+/** Resolve relative upload paths for img src (same-origin /uploads/...). */
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+/** Absolute URL for OpenGraph / metadata. */
+export function resolveAbsoluteMediaUrl(url: string | null | undefined): string | undefined {
+  const resolved = resolveMediaUrl(url);
+  if (!resolved) return undefined;
+  if (resolved.startsWith('http://') || resolved.startsWith('https://')) return resolved;
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  return `${base.replace(/\/$/, '')}${resolved}`;
+}
+
+/** Upload cover image (ADMIN/EDITOR). Do not set Content-Type — browser sets multipart boundary. */
+export async function apiUploadImage(file: File): Promise<UploadImageResult> {
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('inrium_access_token')
+      : null;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${getBaseUrl()}/uploads/image`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  const body = await res.json() as ApiResponse<UploadImageResult> | ApiError;
+
+  if (res.status === 401) {
+    throw new Error('Увійдіть в акаунт ADMIN/EDITOR для завантаження зображень');
+  }
+  if (res.status === 403) {
+    throw new Error('Недостатньо прав для завантаження зображень');
+  }
+  if (res.status === 413) {
+    throw new Error('Файл занадто великий (макс. 5 MB)');
+  }
+  if (res.status === 415) {
+    throw new Error('Дозволені лише JPG, PNG або WebP');
+  }
+  if (!res.ok || !body.success) {
+    const err = body as ApiError;
+    throw new Error(err.message ?? `Upload failed (${res.status})`);
+  }
+
+  return (body as ApiResponse<UploadImageResult>).data;
 }
 
 // ─── CMS (Admin only) ─────────────────────────────────────────────────────────
@@ -543,4 +684,100 @@ export interface SitemapData {
 
 export async function apiGetSitemap(): Promise<SitemapData> {
   return apiFetch<SitemapData>('/sitemap', { next: { revalidate: 3600 } });
+}
+
+// ─── Games ────────────────────────────────────────────────────────────────────
+
+export interface GameMaster {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface GameListItem {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  status: string;
+  maxPlayers: number | null;
+  startsAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  master: GameMaster;
+  gameSystem: { id: string; slug: string; title: string } | null;
+  approvedCount: number;
+}
+
+export interface GameDetail extends GameListItem {
+  applications: Array<{
+    id: string;
+    status: string;
+    user: GameMaster;
+  }>;
+}
+
+export interface GameList extends PaginatedList {
+  items: GameListItem[];
+}
+
+export async function apiGetGames(
+  query: { status?: string; gameSystemId?: string; search?: string; page?: number; limit?: number } = {},
+): Promise<GameList> {
+  const qs = buildQuery(query);
+  return apiFetch<GameList>(`/games${qs}`, { cache: 'no-store' });
+}
+
+export async function apiGetGameBySlug(slug: string): Promise<GameDetail> {
+  return apiFetch<GameDetail>(`/games/${slug}`, { cache: 'no-store' });
+}
+
+export async function apiApplyToGame(gameId: string, message?: string): Promise<{ id: string; status: string }> {
+  return apiFetchAuth<{ id: string; status: string }>(`/games/${gameId}/apply`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
+
+// ─── Public users ─────────────────────────────────────────────────────────────
+
+export interface PublicUserProfile {
+  id: string;
+  displayName: string;
+  role: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  createdAt: string;
+}
+
+export async function apiGetPublicUser(id: string): Promise<PublicUserProfile> {
+  return apiFetch<PublicUserProfile>(`/users/${id}`, { cache: 'no-store' });
+}
+
+// ─── Communities ──────────────────────────────────────────────────────────────
+
+export interface Community {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  coverImageUrl: string | null;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityList extends PaginatedList {
+  items: Community[];
+}
+
+export async function apiGetCommunities(
+  query: { search?: string; page?: number; limit?: number } = {},
+): Promise<CommunityList> {
+  const qs = buildQuery(query);
+  return apiFetch<CommunityList>(`/communities${qs}`, { cache: 'no-store' });
+}
+
+export async function apiGetCommunityBySlug(slug: string): Promise<Community> {
+  return apiFetch<Community>(`/communities/${slug}`, { cache: 'no-store' });
 }

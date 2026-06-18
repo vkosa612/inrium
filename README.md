@@ -107,6 +107,48 @@ curl http://localhost:4200/api/docs
 
 ---
 
+## Завантаження зображень (Cover upload)
+
+CMS дозволяє ADMIN/EDITOR завантажувати обкладинки для content, systems і kits.
+
+| Параметр | Значення |
+|----------|----------|
+| Endpoint | `POST /api/uploads/image` (Bearer token, ADMIN/EDITOR) |
+| Поле форми | `file` (multipart/form-data) |
+| Типи | JPEG, PNG, WebP (SVG заборонено) |
+| Макс. розмір | 5 MB |
+| Storage (Docker) | `./uploads` на хості → `/app/uploads` у backend |
+| Public URL | `/uploads/images/YYYY/MM/{random}.ext` (same-origin через frontend) |
+
+**Backup:** разом із backup PostgreSQL копіюйте папку `./uploads`.
+
+**Git:** uploaded files **не комітити** — у `.gitignore` є `uploads/*` (залишається лише `uploads/.gitkeep`).
+
+**Перевірка в браузері:**
+
+1. Увійти як admin → `/admin/content/new`
+2. Завантажити JPG/PNG/WebP у полі «Обкладинка»
+3. Опублікувати матеріал
+4. Відкрити public page — зображення має відображатись
+
+---
+
+## Профіль і закладки
+
+| Endpoint | Опис |
+|----------|------|
+| `GET /api/auth/me` | Поточний користувач (без passwordHash) |
+| `PATCH /api/users/me` | Оновити displayName, bio, avatarUrl |
+| `POST /api/users/me/change-password` | Змінити пароль (revoke усіх refresh sessions) |
+| `GET /api/bookmarks` | Список закладок поточного user |
+| `POST /api/bookmarks` | Додати закладку `{ targetType, targetId }` |
+| `DELETE /api/bookmarks/:id` | Видалити свою закладку |
+| `GET /api/bookmarks/check?targetType=&targetId=` | Перевірити, чи збережено |
+
+**Frontend:** `/profile` — редагування профілю, зміна пароля, список «Збережене». Кнопка «Зберегти» на detail pages content/help/systems/kits.
+
+---
+
 ## pnpm / Docker scripts
 
 ```bash
@@ -195,15 +237,24 @@ inrium/
 - [x] Rate limit: глобальний + суворіший для auth endpoints (10 req/min)
 - [x] Swagger умовно вимкнений через `SWAGGER_ENABLED=false`
 - [x] Postgres і Adminer тільки на `127.0.0.1` (не LAN/WAN)
+- [x] MarkdownEditor у CMS (toolbar + preview)
+- [x] Cover image upload (local storage, `/api/uploads/image`)
+- [x] User profile edit + change password (`/profile`, `/api/users/me`)
+- [x] Bookmarks for content/help/systems/kits
+- [x] Games / Sessions API + `/games` + apply flow
+- [x] Public profiles `/users/[id]`
+- [x] Communities API + `/communities`
+- [x] Home blocks admin `/admin/home-blocks`
+- [x] Email verify + password reset API (dev tokens in logs)
+- [x] Static pages `/about`, `/contacts`, `/advertise`
+- [x] GitHub Actions CI (`.github/workflows/ci.yml`)
+- [x] Nginx example (`docker/nginx/nginx.conf.example`)
+- [x] Production checklist (`PRODUCTION_CHECKLIST.md`)
 
 ### 🔜 Наступні етапи
 
-- [ ] Профільна сторінка (`/profile`)
-- [ ] Markdown editor у CMS (SimpleMDE або CodeMirror)
-- [ ] Image upload для cover images
+- [ ] SMTP integration for email verify / password reset
+- [ ] Image cropper / resize при upload
 - [ ] Redis для refresh tokens та rate limiting
-- [ ] Email verification
-- [ ] Nginx reverse proxy + HTTPS/SSL
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Logging (Pino)
+- [ ] Dynamic homepage from HomePageBlock config
 - [ ] Error tracking (Sentry або Glitchtip)

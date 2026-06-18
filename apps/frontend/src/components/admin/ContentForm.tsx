@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { ContentItemAdmin, CreateContentPayload, ContentType, ContentStatus } from '@/lib/api';
 import { apiCreateContent, apiUpdateContent } from '@/lib/api';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import ImageUpload from '@/components/ImageUpload';
 
 const TYPE_OPTIONS: { value: ContentType; label: string }[] = [
   { value: 'NEWS', label: 'Новини' },
@@ -205,16 +206,12 @@ export default function ContentForm({ initial }: ContentFormProps) {
       />
 
       {/* Cover image */}
-      <div>
-        <label style={labelStyle}>URL обкладинки</label>
-        <input
-          style={inputStyle}
-          value={coverImageUrl}
-          onChange={(e) => setCoverImageUrl(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          type="url"
-        />
-      </div>
+      <ImageUpload
+        label="Обкладинка"
+        value={coverImageUrl}
+        onChange={setCoverImageUrl}
+        helperText="рекомендовано 1200×630 px"
+      />
 
       {/* Featured checkbox */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

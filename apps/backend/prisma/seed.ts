@@ -1,6 +1,7 @@
 import {
   ContentStatus,
   ContentType,
+  GameStatus,
   HomePageBlockType,
   PrismaClient,
   UserRole,
@@ -78,6 +79,21 @@ async function main() {
   });
 
   console.log(`✅ Users     : ${admin.email} (ADMIN), ${editor.email} (EDITOR)`);
+
+  const gmEmail = process.env.SEED_GM_EMAIL ?? 'gm@inrium.local';
+  const gmPassword = process.env.SEED_GM_PASSWORD ?? 'Gm12345!';
+  const gm = await prisma.user.upsert({
+    where: { email: gmEmail },
+    update: {},
+    create: {
+      email: gmEmail,
+      passwordHash: await bcrypt.hash(gmPassword, SALT_ROUNDS),
+      displayName: 'Demo Game Master',
+      role: UserRole.GAME_MASTER,
+      bio: 'Демо-майстер для тестових ігрових сесій.',
+    },
+  });
+  console.log(`✅ GM user   : ${gm.email} (GAME_MASTER)`);
 
   // ── Categories ────────────────────────────────────────────────────────────────
   const catDefs = [
@@ -549,6 +565,62 @@ async function main() {
     });
   }
   console.log(`✅ Kits       : ${kitDefs.map((k) => k.title).join(', ')}`);
+
+  // ── Sample games ────────────────────────────────────────────────────────────
+  const dndSystem = await prisma.gameSystem.findUnique({ where: { slug: 'dnd-5e' } });
+  const gameDefs = [
+    {
+      slug: 'oneshot-dragon-lair',
+      title: 'One-Shot: Лігво дракона',
+      description: 'Класична односесійна пригода для 4-5 гравців рівня 5. Підходить для новачків.',
+      status: GameStatus.OPEN,
+      maxPlayers: 5,
+      startsAt: new Date('2026-07-15T18:00:00Z'),
+      masterId: gm.id,
+      gameSystemId: dndSystem?.id ?? null,
+    },
+    {
+      slug: 'weekly-cos-campaign',
+      title: 'Щотижнева кампанія Call of Cthulhu',
+      description: 'Довга кампанія у стилі lovecraftian horror. Досвідчені гравці, 3/5 місць зайнято.',
+      status: GameStatus.OPEN,
+      maxPlayers: 5,
+      startsAt: new Date('2026-07-20T19:00:00Z'),
+      masterId: gm.id,
+      gameSystemId: null,
+    },
+  ];
+
+  for (const def of gameDefs) {
+    await prisma.game.upsert({
+      where: { slug: def.slug },
+      update: {},
+      create: def,
+    });
+  }
+  console.log(`✅ Games      : ${gameDefs.map((g) => g.title).join(', ')}`);
+
+  const communityDefs = [
+    {
+      slug: 'kyiv-rpg-club',
+      name: 'Київський RPG-клуб',
+      description: 'Спільнота настільних рольовиків Києва: щотижневі зустрічі, open tables, обмін досвідом.',
+    },
+    {
+      slug: 'online-vtt-players',
+      name: 'Online VTT Players',
+      description: 'Гравці для онлайн-сесій через Roll20 та Foundry. Англомовні та україномовні столи.',
+    },
+  ];
+
+  for (const def of communityDefs) {
+    await prisma.community.upsert({
+      where: { slug: def.slug },
+      update: {},
+      create: def,
+    });
+  }
+  console.log(`✅ Communities: ${communityDefs.map((c) => c.name).join(', ')}`);
 
   console.log('\n🎉 Seed completed successfully!');
 }

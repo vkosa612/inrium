@@ -56,6 +56,20 @@ enum GameStatus {
   CANCELLED
 }
 
+enum GameApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum BookmarkTargetType {
+  CONTENT
+  HELP
+  SYSTEM
+  KIT
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -69,11 +83,20 @@ model User {
   avatarUrl String?
   bio       String?
 
+  emailVerified              Boolean   @default(false)
+  emailVerificationToken     String?
+  emailVerificationExpiresAt DateTime?
+  passwordResetToken         String?
+  passwordResetExpiresAt     DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   contentItems ContentItem[]
   sessions     Session[]
+  bookmarks    Bookmark[]
+  gamesMastered Game[]              @relation("GameMaster")
+  gameApplications GameApplication[]
 
   @@index([role])
   @@index([status])
@@ -191,14 +214,42 @@ model Game {
   maxPlayers  Int?
   startsAt    DateTime?
 
+  masterId String
+  master   User   @relation("GameMaster", fields: [masterId], references: [id], onDelete: Cascade)
+
   systemId String?
   system   ContentItem? @relation("GameSystem", fields: [systemId], references: [id], onDelete: SetNull)
+
+  gameSystemId String?
+  gameSystem   GameSystem? @relation(fields: [gameSystemId], references: [id], onDelete: SetNull)
+
+  applications GameApplication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([startsAt])
+  @@index([masterId])
+  @@index([gameSystemId])
+}
+
+model GameApplication {
+  id      String                  @id @default(cuid())
+  gameId  String
+  game    Game                    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status  GameApplicationStatus   @default(PENDING)
+  message String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([gameId, userId])
+  @@index([gameId])
+  @@index([userId])
+  @@index([status])
 }
 
 // ─── Game Systems & Kits ───────────────────────────────────────────────────────
@@ -219,6 +270,7 @@ model GameSystem {
   updatedAt        DateTime      @updatedAt
 
   kits             Kit[]
+  games            Game[]
 
   @@index([status])
 }
@@ -241,4 +293,29 @@ model Kit {
 
   @@index([status])
   @@index([systemId])
+}
+
+model Bookmark {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType BookmarkTargetType
+  targetId   String
+  createdAt  DateTime           @default(now())
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId])
+}
+
+model Community {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String
+  coverImageUrl String?
+  isPublished   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isPublished])
 }

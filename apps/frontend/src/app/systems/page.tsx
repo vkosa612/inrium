@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
 import PaginationWrapper from '@/components/PaginationWrapper';
-import { apiGetSystems, type GameSystem } from '@/lib/api';
+import { apiGetSystems, resolveMediaUrl, type GameSystem } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,13 +25,14 @@ const COMPLEXITY_COLOR: Record<string, string> = {
 
 function SystemCard({ system }: { system: GameSystem }) {
   const complexityColor = COMPLEXITY_COLOR[system.complexity ?? ''] ?? '#6b7280';
+  const imageSrc = resolveMediaUrl(system.imageUrl);
 
   return (
     <Link href={`/systems/${system.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {system.imageUrl ? (
+        {imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={system.imageUrl} alt={system.title} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8 }} />
+          <img src={imageSrc} alt={system.title} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8 }} />
         ) : (
           <div style={{ width: '100%', height: 100, borderRadius: 8, background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(245,158,11,0.08) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>
             🎲

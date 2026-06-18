@@ -39,6 +39,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      UPLOADS_DIR: /app/uploads
     ports:
       - '${BACKEND_BIND:-0.0.0.0}:4200:4200'
     depends_on:
@@ -47,6 +49,8 @@ services:
     volumes:
       # Mount prisma dir so migrations generated inside container persist to host
       - ./apps/backend/prisma:/app/apps/backend/prisma
+      # Persist uploaded images on host
+      - ./uploads:/app/uploads
     healthcheck:
       test:
         - CMD

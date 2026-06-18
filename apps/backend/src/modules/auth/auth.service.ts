@@ -31,6 +31,7 @@ const USER_SELECT = {
   status: true,
   avatarUrl: true,
   bio: true,
+  emailVerified: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -144,9 +145,19 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.prisma.user.create({
-      data: { email: dto.email, passwordHash, displayName: dto.displayName },
+      data: {
+        email: dto.email,
+        passwordHash,
+        displayName: dto.displayName,
+        emailVerificationToken: randomUUID(),
+        emailVerificationExpiresAt: new Date(Date.now() + 86400000),
+      },
       select: USER_SELECT,
     });
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[dev] Email verification token for ${user.email}: check user record`);
+    }
 
     const { refreshToken } = await this.createSession(user.id, meta);
     return this.buildTokens(user, refreshToken);
@@ -251,5 +262,75 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException('User not found');
     return user;
+  }
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpiresAt: { gt: new Date() },
+      },
+    });
+    if (!user) throw new UnauthorizedException('Invalid or expired verification token');
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpiresAt: null,
+      },
+    });
+    return { message: 'Email verified successfully' };
+  }
+
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return { message: 'If the email exists, a reset link was sent' };
+    }
+
+    const token = randomUUID();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: token,
+        passwordResetExpiresAt: new Date(Date.now() + 3600000),
+      },
+    });
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[dev] Password reset token for ${email}: ${token}`);
+    }
+
+    return { message: 'If the email exists, a reset link was sent' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpiresAt: { gt: new Date() },
+      },
+    });
+    if (!user) throw new UnauthorizedException('Invalid or expired reset token');
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          passwordResetToken: null,
+          passwordResetExpiresAt: null,
+        },
+      }),
+      this.prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return { message: 'Password reset successful. Please sign in.' };
   }
 }

@@ -38,6 +38,9 @@ export const envValidationSchema = Joi.object({
 
   // Feature flags
   SWAGGER_ENABLED: Joi.string().valid('true', 'false').default('true'),
+
+  // Local file uploads (cover images)
+  UPLOADS_DIR: Joi.string().default('uploads'),
 }).options({
   allowUnknown: true,
   abortEarly: false,

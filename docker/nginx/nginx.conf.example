@@ -1,0 +1,53 @@
+# Example Nginx reverse proxy for production INRIUM
+# Place on host with SSL certs (Let's Encrypt). Backend binds 127.0.0.1:4200, frontend :3000.
+
+upstream inrium_frontend {
+    server 127.0.0.1:3000;
+}
+
+upstream inrium_backend {
+    server 127.0.0.1:4200;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name inrium.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/inrium.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/inrium.example.com/privkey.pem;
+
+    client_max_body_size 6m;
+
+    # Frontend (Next.js)
+    location / {
+        proxy_pass http://inrium_frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Uploaded images via frontend proxy or direct backend static
+    location /uploads/ {
+        proxy_pass http://inrium_backend;
+        proxy_set_header Host $host;
+    }
+
+    # Optional: API through same origin (set NEXT_PUBLIC_API_URL=https://inrium.example.com/api)
+    location /api/ {
+        proxy_pass http://inrium_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name inrium.example.com;
+    return 301 https://$host$request_uri;
+}

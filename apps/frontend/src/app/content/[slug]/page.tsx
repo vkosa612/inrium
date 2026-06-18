@@ -4,7 +4,8 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MarkdownContent from '@/components/MarkdownContent';
-import { fetchContentBySlug, fetchContent } from '@/lib/api';
+import BookmarkButton from '@/components/BookmarkButton';
+import { fetchContentBySlug, fetchContent, resolveAbsoluteMediaUrl, resolveMediaUrl } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   try {
     const item = await fetchContentBySlug(slug);
     const description = item.excerpt ?? `Матеріал "${item.title}" на INRIUM`;
-    const image = item.coverImageUrl;
+    const image = resolveAbsoluteMediaUrl(item.coverImageUrl);
     return {
       title: `${item.title} — INRIUM`,
       description,
@@ -98,9 +99,9 @@ export default async function ContentSlugPage({ params }: Props) {
           </nav>
 
           {/* Cover image */}
-          {item.coverImageUrl && (
+          {resolveMediaUrl(item.coverImageUrl) && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.coverImageUrl} alt={item.title} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 12, marginBottom: 28, border: '1px solid var(--border)' }} />
+            <img src={resolveMediaUrl(item.coverImageUrl)!} alt={item.title} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 12, marginBottom: 28, border: '1px solid var(--border)' }} />
           )}
 
           {/* Type + meta badges */}
@@ -121,6 +122,12 @@ export default async function ContentSlugPage({ params }: Props) {
             <time style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{publishedDate}</time>
             {item.author && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>· {item.author.displayName}</span>}
           </div>
+
+          {(item.type === 'NEWS' || item.type === 'ARTICLE') && (
+            <div style={{ marginBottom: 20 }}>
+              <BookmarkButton targetType="CONTENT" targetId={item.id} />
+            </div>
+          )}
 
           {/* Title */}
           <h1 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 900, color: '#f1f5f9', lineHeight: 1.2, marginBottom: 20, letterSpacing: '-0.02em' }}>

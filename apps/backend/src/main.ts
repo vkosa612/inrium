@@ -8,25 +8,52 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyMultipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import { existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { API_PREFIX, APP_NAME, SWAGGER_PATH } from './common/constants';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: false, bodyLimit: 2_097_152 }), // 2 MB body limit
+    new FastifyAdapter({ logger: false, bodyLimit: 6_291_456 }), // 6 MB (upload max 5 MB)
   );
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('BACKEND_PORT', 4200);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
   const swaggerEnabled = configService.get<string>('SWAGGER_ENABLED', 'true') === 'true';
+  const uploadsDir = configService.get<string>(
+    'UPLOADS_DIR',
+    join(process.cwd(), 'uploads'),
+  );
+
+  if (!existsSync(uploadsDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
+  }
 
   // CORS: supports comma-separated list or single origin
   const rawCors = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000');
   const corsOrigins = rawCors.includes(',')
     ? rawCors.split(',').map((o) => o.trim())
     : rawCors;
+
+  // ── Multipart (image uploads) ─────────────────────────────────────────────
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+      files: 1,
+    },
+  });
+
+  // ── Static uploads (public GET /uploads/*) ────────────────────────────────
+  await app.register(fastifyStatic, {
+    root: uploadsDir,
+    prefix: '/uploads/',
+    decorateReply: false,
+  });
 
   // ── Global prefix ────────────────────────────────────────────────────────
   app.setGlobalPrefix(API_PREFIX);
@@ -70,7 +97,6 @@ async function bootstrap() {
   await app.register(fastifyHelmet, {
     contentSecurityPolicy: swaggerEnabled
       ? {
-          // Relaxed CSP for Swagger UI
           directives: {
             defaultSrc: [`'self'`],
             styleSrc: [`'self'`, `'unsafe-inline'`],
@@ -81,7 +107,6 @@ async function bootstrap() {
           },
         }
       : {
-          // Strict CSP for production (no Swagger assets)
           directives: {
             defaultSrc: [`'self'`],
             styleSrc: [`'self'`],
@@ -94,15 +119,17 @@ async function bootstrap() {
   });
 
   // ── Start ─────────────────────────────────────────────────────────────────
-  await app.listen(port, '0.0.0.0');
+  const bind = configService.get<string>('BACKEND_BIND', '0.0.0.0');
+  await app.listen(port, bind);
 
   const separator = '─'.repeat(50);
   console.log(`\n${separator}`);
   console.log(`  ${APP_NAME}`);
   console.log(`${separator}`);
   console.log(`  Environment : ${nodeEnv}`);
-  console.log(`  Port        : ${port}`);
+  console.log(`  Bind        : ${bind}:${port}`);
   console.log(`  API         : http://localhost:${port}/${API_PREFIX}`);
+  console.log(`  Uploads     : ${uploadsDir}`);
   if (swaggerEnabled) {
     console.log(`  Swagger     : http://localhost:${port}/${SWAGGER_PATH}`);
   } else {

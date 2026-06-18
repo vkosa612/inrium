@@ -8,6 +8,7 @@ import {
   getRefreshToken,
   getStoredUser,
   setAuth as storeAuth,
+  updateStoredUser,
 } from '@/lib/auth-storage';
 
 interface AuthContextValue {
@@ -16,6 +17,8 @@ interface AuthContextValue {
   isLoading: boolean;
   /** Call after successful login/register API response */
   login: (result: AuthResult) => void;
+  /** Update user in context + localStorage after profile edit */
+  updateUser: (user: AuthUser) => void;
   /** Revokes session on backend and clears local storage */
   logout: () => Promise<void>;
 }
@@ -24,6 +27,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   isLoading: true,
   login: () => {},
+  updateUser: () => {},
   logout: async () => {},
 });
 
@@ -42,6 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(result.user);
   }, []);
 
+  const updateUser = useCallback((next: AuthUser) => {
+    updateStoredUser(next);
+    setUser(next);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       const rt = getRefreshToken();
@@ -55,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

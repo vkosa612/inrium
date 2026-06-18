@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetKitBySlug } from '@/lib/api';
+import { apiGetKitBySlug, resolveAbsoluteMediaUrl, resolveMediaUrl } from '@/lib/api';
+import BookmarkButton from '@/components/BookmarkButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description,
         url: `${BASE_URL}/kits/${slug}`,
         type: 'article',
-        ...(kit.imageUrl ? { images: [{ url: kit.imageUrl, alt: kit.title }] } : {}),
+        ...(resolveAbsoluteMediaUrl(kit.imageUrl)
+          ? { images: [{ url: resolveAbsoluteMediaUrl(kit.imageUrl)!, alt: kit.title }] }
+          : {}),
       },
       twitter: { card: 'summary_large_image', title: kit.title, description },
     };
@@ -72,10 +75,10 @@ export default async function KitDetailPage({ params }: Props) {
           </nav>
 
           {/* Cover */}
-          {kit.imageUrl && (
+          {resolveMediaUrl(kit.imageUrl) && (
             <div style={{ width: '100%', height: 200, borderRadius: 14, overflow: 'hidden', marginBottom: 28 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={kit.imageUrl} alt={kit.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={resolveMediaUrl(kit.imageUrl)!} alt={kit.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 
@@ -97,6 +100,10 @@ export default async function KitDetailPage({ params }: Props) {
                 🎲 {kit.system.title}
               </Link>
             )}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <BookmarkButton targetType="KIT" targetId={kit.id} />
           </div>
 
           {/* Title */}

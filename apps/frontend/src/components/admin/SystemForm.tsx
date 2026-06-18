@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { GameSystemFull, CreateSystemPayload, ContentStatus } from '@/lib/api';
 import { apiCreateSystem, apiUpdateSystem } from '@/lib/api';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import ImageUpload from '@/components/ImageUpload';
 
 const STATUS_OPTIONS: { value: ContentStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Чернетка' },
@@ -138,10 +139,11 @@ export default function SystemForm({ initial }: SystemFormProps) {
         <label style={labelStyle}>Теги (через кому)</label>
         <input style={inputStyle} value={tags} onChange={(e) => setTags(e.target.value)} placeholder="фентезі, класика, пригоди" />
       </div>
-      <div>
-        <label style={labelStyle}>URL зображення</label>
-        <input style={inputStyle} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" type="url" />
-      </div>
+      <ImageUpload
+        label="Зображення системи"
+        value={imageUrl}
+        onChange={setImageUrl}
+      />
 
       {error && <div style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, fontSize: 13, color: '#ef4444' }}>{error}</div>}
       {success && <div style={{ padding: '10px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, fontSize: 13, color: '#10b981' }}>{success}</div>}
