@@ -196,6 +196,24 @@ export default function Header() {
                 </span>
               </a>
 
+              {(user.role === 'GAME_MASTER' || user.role === 'ADMIN') && (
+                <a
+                  href="/my/games"
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: 'rgba(16,185,129,0.1)',
+                    border: '1px solid rgba(16,185,129,0.25)',
+                    color: '#10b981',
+                    textDecoration: 'none',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  Мої ігри
+                </a>
+              )}
+
               {/* Admin link (ADMIN/EDITOR only) */}
               {(user.role === 'ADMIN' || user.role === 'EDITOR') && (
                 <a

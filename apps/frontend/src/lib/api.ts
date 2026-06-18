@@ -732,12 +732,112 @@ export async function apiGetGameBySlug(slug: string): Promise<GameDetail> {
   return apiFetch<GameDetail>(`/games/${slug}`, { cache: 'no-store' });
 }
 
-export async function apiApplyToGame(gameId: string, message?: string): Promise<{ id: string; status: string }> {
-  return apiFetchAuth<{ id: string; status: string }>(`/games/${gameId}/apply`, {
+export async function apiApplyToGame(gameId: string, message?: string): Promise<GameApplication> {
+  return apiFetchAuth<GameApplication>(`/games/${gameId}/apply`, {
     method: 'POST',
     body: JSON.stringify({ message }),
   });
 }
+
+export type GameStatus = 'DRAFT' | 'OPEN' | 'FULL' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
+export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface GameApplication {
+  id: string;
+  status: ApplicationStatus;
+  message: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  user?: GameMaster;
+}
+
+export interface MyGameItem extends GameListItem {
+  applicationCount: number;
+  pendingApplicationCount: number;
+}
+
+export interface MyGameApplication {
+  id: string;
+  status: ApplicationStatus;
+  message: string | null;
+  createdAt: string;
+  updatedAt: string;
+  game: {
+    id: string;
+    slug: string;
+    title: string;
+    status: GameStatus;
+    startsAt: string | null;
+    master: { id: string; displayName: string };
+  };
+}
+
+export interface CreateGamePayload {
+  title: string;
+  slug?: string;
+  description: string;
+  status?: GameStatus;
+  maxPlayers?: number;
+  startsAt?: string;
+  gameSystemId?: string;
+}
+
+export type UpdateGamePayload = Partial<CreateGamePayload>;
+
+export async function apiGetMyGames(): Promise<MyGameItem[]> {
+  return apiFetchAuth<MyGameItem[]>('/games/my/games');
+}
+
+export async function apiGetMyApplications(): Promise<MyGameApplication[]> {
+  return apiFetchAuth<MyGameApplication[]>('/games/my/applications');
+}
+
+export async function apiGetGameById(id: string): Promise<GameListItem> {
+  return apiFetchAuth<GameListItem>(`/games/by-id/${id}`);
+}
+
+export async function apiGetGameApplications(gameId: string): Promise<GameApplication[]> {
+  return apiFetchAuth<GameApplication[]>(`/games/by-id/${gameId}/applications`);
+}
+
+export async function apiGetMyGameApplication(gameId: string): Promise<{ application: GameApplication | null }> {
+  return apiFetchAuth<{ application: GameApplication | null }>(`/games/by-id/${gameId}/my-application`);
+}
+
+export async function apiCreateGame(payload: CreateGamePayload): Promise<GameListItem> {
+  return apiFetchAuth<GameListItem>('/games', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export async function apiUpdateGame(id: string, payload: UpdateGamePayload): Promise<GameListItem> {
+  return apiFetchAuth<GameListItem>(`/games/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+}
+
+export async function apiDeleteGame(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
+  const res = await fetch(`${getBaseUrl()}/games/${id}`, {
+    method: 'DELETE',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({})) as ApiError;
+    throw new Error(body.message ?? `Delete failed: ${res.status}`);
+  }
+}
+
+export async function apiCancelGameApplication(gameId: string, appId: string): Promise<GameApplication> {
+  return apiFetchAuth<GameApplication>(`/games/${gameId}/applications/${appId}/cancel`, { method: 'PATCH' });
+}
+
+export async function apiApproveGameApplication(gameId: string, appId: string): Promise<GameApplication> {
+  return apiFetchAuth<GameApplication>(`/games/${gameId}/applications/${appId}/approve`, { method: 'PATCH' });
+}
+
+export async function apiRejectGameApplication(gameId: string, appId: string): Promise<GameApplication> {
+  return apiFetchAuth<GameApplication>(`/games/${gameId}/applications/${appId}/reject`, { method: 'PATCH' });
+}
+
+/** Alias for public game detail by slug */
+export const apiGetGame = apiGetGameBySlug;
 
 // ─── Public users ─────────────────────────────────────────────────────────────
 

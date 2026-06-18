@@ -110,7 +110,7 @@ export default async function GameDetailPage({ params }: Props) {
           <MarkdownContent content={game.description} />
         </div>
 
-        <GameApplyButton gameId={game.id} gameSlug={game.slug} status={game.status} />
+        <GameApplyButton gameId={game.id} gameSlug={game.slug} gameStatus={game.status} masterId={game.master.id} />
 
         {game.applications.length > 0 && (
           <section style={{ marginTop: 48 }}>

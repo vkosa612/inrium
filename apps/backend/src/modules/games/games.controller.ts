@@ -35,6 +35,44 @@ export class GamesController {
     return this.gamesService.list(query);
   }
 
+  @Get('my/games')
+  @ApiBearerAuth()
+  @Roles(UserRole.GAME_MASTER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'List games managed by current user (or all for ADMIN)' })
+  listMyGames(@CurrentUser() user: UserPublic) {
+    return this.gamesService.listMyGames(user);
+  }
+
+  @Get('my/applications')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List current user game applications' })
+  listMyApplications(@CurrentUser() user: UserPublic) {
+    return this.gamesService.listMyApplications(user);
+  }
+
+  @Get('by-id/:id')
+  @ApiBearerAuth()
+  @Roles(UserRole.GAME_MASTER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get game by ID for management (owner or admin)' })
+  findByIdForManage(@Param('id') id: string, @CurrentUser() user: UserPublic) {
+    return this.gamesService.findByIdForManage(id, user);
+  }
+
+  @Get('by-id/:id/applications')
+  @ApiBearerAuth()
+  @Roles(UserRole.GAME_MASTER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'List applications for a game (owner or admin)' })
+  listGameApplications(@Param('id') id: string, @CurrentUser() user: UserPublic) {
+    return this.gamesService.listGameApplications(id, user);
+  }
+
+  @Get('by-id/:id/my-application')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user application for a game' })
+  getMyApplication(@Param('id') id: string, @CurrentUser() user: UserPublic) {
+    return this.gamesService.getMyApplicationForGame(id, user);
+  }
+
   @Post()
   @ApiBearerAuth()
   @Roles(UserRole.GAME_MASTER, UserRole.ADMIN)

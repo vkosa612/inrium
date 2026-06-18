@@ -11,12 +11,15 @@ import {
   apiChangePassword,
   apiGetBookmarks,
   apiGetMe,
+  apiGetMyApplications,
   apiRemoveBookmark,
   apiUpdateProfile,
   resolveMediaUrl,
   type AuthUser,
   type BookmarkItem,
+  type MyGameApplication,
 } from '@/lib/api';
+import { APPLICATION_STATUS_COLOR, APPLICATION_STATUS_LABEL, formatGameDate } from '@/lib/game-labels';
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: 'Адміністратор',
@@ -80,6 +83,7 @@ export default function ProfilePageClient() {
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [applications, setApplications] = useState<MyGameApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -102,13 +106,14 @@ export default function ProfilePageClient() {
       return;
     }
 
-    Promise.all([apiGetMe(), apiGetBookmarks()])
-      .then(([fresh, bms]) => {
+    Promise.all([apiGetMe(), apiGetBookmarks(), apiGetMyApplications()])
+      .then(([fresh, bms, apps]) => {
         setUser(fresh);
         setDisplayName(fresh.displayName);
         setBio(fresh.bio ?? '');
         setAvatarUrl(fresh.avatarUrl ?? '');
         setBookmarks(bms);
+        setApplications(apps);
       })
       .catch(() => {
         setUser(ctxUser);
@@ -295,6 +300,45 @@ export default function ProfilePageClient() {
                 {passwordSaving ? 'Змінюю…' : 'Змінити пароль'}
               </button>
             </form>
+          </section>
+
+          {/* Game applications */}
+          <section style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Мої заявки на ігри</h3>
+              {applications.length > 0 && (
+                <Link href="/my/applications" style={{ fontSize: 13, color: '#10b981', textDecoration: 'none' }}>Усі →</Link>
+              )}
+            </div>
+            {applications.length === 0 ? (
+              <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>
+                Ви ще не подавали заявок. Перегляньте <Link href="/games" style={{ color: '#10b981' }}>відкриті ігри</Link>.
+              </p>
+            ) : (
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {applications.slice(0, 5).map((app) => {
+                  const color = APPLICATION_STATUS_COLOR[app.status] ?? '#6b7280';
+                  return (
+                    <li key={app.id} style={{ padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                      <Link href={`/games/${app.game.slug}`} style={{ fontWeight: 600, color: 'var(--text)', textDecoration: 'none', fontSize: 14 }}>
+                        {app.game.title}
+                      </Link>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-muted)' }}>
+                        <span style={{ color, fontWeight: 600 }}>{APPLICATION_STATUS_LABEL[app.status]}</span>
+                        <span>{formatGameDate(app.game.startsAt)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {(user.role === 'GAME_MASTER' || user.role === 'ADMIN') && (
+              <Link href="/my/games" style={{
+                display: 'inline-block', marginTop: 16, fontSize: 14, color: '#10b981', fontWeight: 600, textDecoration: 'none',
+              }}>
+                Керувати моїми іграми →
+              </Link>
+            )}
           </section>
 
           {/* Bookmarks */}
