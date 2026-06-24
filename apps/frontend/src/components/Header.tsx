@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { label: 'Ігрові системи', href: '/systems' },
   { label: 'Набори', href: '/kits' },
   { label: 'Ігри', href: '/games' },
+  { label: 'Спільноти', href: '/communities' },
   { label: 'Довідка', href: '/help' },
 ];
 

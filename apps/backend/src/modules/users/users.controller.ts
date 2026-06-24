@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPublic } from '../auth/types/auth-response.type';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminUpdateRoleDto } from './dto/admin-update-role.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './users.service';
 
@@ -30,11 +31,23 @@ export class UsersController {
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Admin: list users' })
-  adminList(@Query('page') page?: string, @Query('limit') limit?: string) {
+  adminList(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
     return this.usersService.adminList(
       Math.max(1, parseInt(page ?? '1', 10) || 1),
       Math.min(100, parseInt(limit ?? '20', 10) || 20),
+      search,
     );
+  }
+
+  @Patch(':id/role')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin: update user role' })
+  adminUpdateRole(@Param('id') id: string, @Body() dto: AdminUpdateRoleDto) {
+    return this.usersService.adminUpdateRole(id, dto.role);
   }
 
   @Public()

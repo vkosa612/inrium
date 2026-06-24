@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { apiUploadImage, resolveMediaUrl } from '@/lib/api';
+import { apiUploadImage, resolveMediaUrl, type UploadImageResult } from '@/lib/api';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp';
 const MAX_MB = 5;
@@ -14,6 +14,7 @@ export interface ImageUploadProps {
   preview?: boolean;
   helperText?: string;
   allowManualUrl?: boolean;
+  uploadFn?: (file: File) => Promise<UploadImageResult>;
 }
 
 export default function ImageUpload({
@@ -24,6 +25,7 @@ export default function ImageUpload({
   preview = true,
   helperText,
   allowManualUrl = true,
+  uploadFn,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -46,7 +48,7 @@ export default function ImageUpload({
 
       setUploading(true);
       try {
-        const result = await apiUploadImage(file);
+        const result = uploadFn ? await uploadFn(file) : await apiUploadImage(file);
         onChange(result.url);
       } catch (err) {
         setLocalError(err instanceof Error ? err.message : 'Помилка завантаження');
@@ -55,7 +57,7 @@ export default function ImageUpload({
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [onChange],
+    [onChange, uploadFn],
   );
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {

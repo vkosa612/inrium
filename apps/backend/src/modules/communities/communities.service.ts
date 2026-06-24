@@ -25,6 +25,13 @@ const COMMUNITY_SELECT = {
 export class CommunitiesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async adminList() {
+    return this.prisma.community.findMany({
+      orderBy: { name: 'asc' },
+      select: COMMUNITY_SELECT,
+    });
+  }
+
   async list(query: CommunityQueryDto) {
     const { page = 1, limit = 12, search } = query;
     const skip = (page - 1) * limit;

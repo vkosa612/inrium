@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ContentStatus, ContentType } from '@prisma/client';
+import { ContentStatus, ContentType, GameApplicationStatus, GameStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const CONTENT_SELECT = {
@@ -20,11 +20,33 @@ const KIT_SELECT = {
   system: { select: { id: true, slug: true, title: true } },
 } as const;
 
+const GAME_HOME_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  description: true,
+  coverImageUrl: true,
+  status: true,
+  maxPlayers: true,
+  startsAt: true,
+  createdAt: true,
+  updatedAt: true,
+  master: { select: { id: true, displayName: true, avatarUrl: true } },
+  gameSystem: { select: { id: true, slug: true, title: true } },
+  _count: {
+    select: {
+      applications: { where: { status: GameApplicationStatus.APPROVED } },
+    },
+  },
+} as const;
+
 const HELP_SELECT = {
   id: true, slug: true, title: true, excerpt: true,
   publishedAt: true, createdAt: true,
   category: { select: { id: true, name: true, slug: true } },
 } as const;
+
+const PUBLIC_GAME_STATUSES = ['OPEN', 'FULL', 'IN_PROGRESS', 'FINISHED'] as const;
 
 function contentUrl(type: ContentType, slug: string): string {
   return type === ContentType.HELP_PAGE ? `/help/${slug}` : `/content/${slug}`;
@@ -37,7 +59,7 @@ export class HomeService {
   async getHome() {
     const PUBLISHED = ContentStatus.PUBLISHED;
 
-    const [featured, latestNews, latestArticles, systems, kits, helpItems, counts] =
+    const [featured, latestNews, latestArticles, systems, kits, helpItems, gamesRaw, counts] =
       await Promise.all([
         this.prisma.contentItem.findMany({
           where: { status: PUBLISHED, isFeatured: true, type: { not: ContentType.HELP_PAGE } },
@@ -75,16 +97,30 @@ export class HomeService {
           orderBy: { publishedAt: 'desc' },
           take: 4,
         }),
+        this.prisma.game.findMany({
+          where: { status: { in: [...PUBLIC_GAME_STATUSES] as GameStatus[] } },
+          select: GAME_HOME_SELECT,
+          orderBy: [{ startsAt: 'asc' }, { createdAt: 'desc' }],
+          take: 4,
+        }),
         Promise.all([
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.NEWS } }),
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.ARTICLE } }),
           this.prisma.gameSystem.count({ where: { status: PUBLISHED } }),
           this.prisma.kit.count({ where: { status: PUBLISHED } }),
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.HELP_PAGE } }),
+          this.prisma.game.count({
+            where: { status: { in: [...PUBLIC_GAME_STATUSES] as GameStatus[] } },
+          }),
         ]),
       ]);
 
-    const [newsCount, articlesCount, systemsCount, kitsCount, helpCount] = counts;
+    const games = gamesRaw.map(({ _count, ...g }) => ({
+      ...g,
+      approvedCount: _count.applications,
+    }));
+
+    const [newsCount, articlesCount, systemsCount, kitsCount, helpCount, gamesCount] = counts;
 
     return {
       featured,
@@ -93,12 +129,14 @@ export class HomeService {
       systems,
       kits,
       helpItems,
+      games,
       stats: {
         news: newsCount,
         articles: articlesCount,
         systems: systemsCount,
         kits: kitsCount,
         help: helpCount,
+        games: gamesCount,
       },
     };
   }

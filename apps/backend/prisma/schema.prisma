@@ -41,6 +41,7 @@ enum HomePageBlockType {
   FEATURED_GRID
   LATEST_NEWS
   POPULAR_ARTICLES
+  GAMES
   GAME_SYSTEMS
   KITS
   HELP
@@ -210,6 +211,7 @@ model Game {
   title       String
   slug        String     @unique
   description String
+  coverImageUrl String?
   status      GameStatus @default(DRAFT)
   maxPlayers  Int?
   startsAt    DateTime?

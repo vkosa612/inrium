@@ -95,6 +95,12 @@ export default function LoginPage() {
             />
           </Field>
 
+          <div style={{ textAlign: 'right', marginTop: -8 }}>
+            <Link href="/forgot-password" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
+              Забули пароль?
+            </Link>
+          </div>
+
           {error && <ErrorBox>{error}</ErrorBox>}
 
           <SubmitButton loading={submitting}>

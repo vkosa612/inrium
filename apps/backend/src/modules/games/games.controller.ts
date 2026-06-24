@@ -9,9 +9,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import type { FastifyRequest } from 'fastify';
 import { SkipResponseWrap } from '../../common/decorators/skip-response-wrap.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -101,6 +104,30 @@ export class GamesController {
   @ApiOperation({ summary: 'Delete game (owner or admin)' })
   remove(@Param('id') id: string, @CurrentUser() user: UserPublic) {
     return this.gamesService.remove(id, user);
+  }
+
+  @Post(':id/cover')
+  @ApiBearerAuth()
+  @Roles(UserRole.GAME_MASTER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Upload cover image for own game (GM owner or ADMIN)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  async uploadCover(
+    @Param('id') id: string,
+    @Req() req: FastifyRequest,
+    @CurrentUser() user: UserPublic,
+  ) {
+    const data = await req.file();
+    if (!data) {
+      throw new UnsupportedMediaTypeException('Expected multipart field "file"');
+    }
+    return this.gamesService.uploadCover(id, data, user);
   }
 
   @Post(':id/apply')

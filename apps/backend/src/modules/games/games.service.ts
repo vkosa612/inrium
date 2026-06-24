@@ -11,18 +11,21 @@ import {
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UploadsService } from '../uploads/uploads.service';
 import { generateSlug } from '../content/utils/slug.util';
 import type { UserPublic } from '../auth/types/auth-response.type';
 import type { ApplyGameDto } from './dto/apply-game.dto';
 import type { CreateGameDto } from './dto/create-game.dto';
 import type { GameQueryDto } from './dto/game-query.dto';
 import type { UpdateGameDto } from './dto/update-game.dto';
+import type { MultipartFile } from '@fastify/multipart';
 
 const GAME_SELECT = {
   id: true,
   slug: true,
   title: true,
   description: true,
+  coverImageUrl: true,
   status: true,
   maxPlayers: true,
   startsAt: true,
@@ -52,7 +55,10 @@ const PUBLIC_STATUSES: GameStatus[] = [
 
 @Injectable()
 export class GamesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   async list(query: GameQueryDto) {
     const { page = 1, limit = 12, status, gameSystemId, search } = query;
@@ -104,6 +110,7 @@ export class GamesService {
         slug: true,
         title: true,
         description: true,
+        coverImageUrl: true,
         status: true,
         maxPlayers: true,
         startsAt: true,
@@ -158,6 +165,7 @@ export class GamesService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : null,
         masterId: user.id,
         gameSystemId: dto.gameSystemId || null,
+        coverImageUrl: dto.coverImageUrl || null,
       },
       select: GAME_SELECT,
     });
@@ -185,6 +193,7 @@ export class GamesService {
           startsAt: dto.startsAt ? new Date(dto.startsAt) : null,
         }),
         ...(dto.gameSystemId !== undefined && { gameSystemId: dto.gameSystemId || null }),
+        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl || null }),
       },
       select: {
         id: true,
@@ -376,6 +385,8 @@ export class GamesService {
     });
     return { ...game, approvedCount };
   }
+
+  async listMyApplications(user: UserPublic) {
     return this.prisma.gameApplication.findMany({
       where: { userId: user.id },
       select: {
@@ -399,7 +410,7 @@ export class GamesService {
     });
   }
 
-  async listMyApplications(user: UserPublic) {
+  async listGameApplications(gameId: string, user: UserPublic) {
     await this.findOwnedOrAdmin(gameId, user);
 
     return this.prisma.gameApplication.findMany({
@@ -429,6 +440,18 @@ export class GamesService {
       },
     });
     return { application: app };
+  }
+
+  async uploadCover(id: string, file: MultipartFile, user: UserPublic) {
+    await this.findOwnedOrAdmin(id, user);
+    const saved = await this.uploads.saveImage(file);
+    const updated = await this.prisma.game.update({
+      where: { id },
+      data: { coverImageUrl: saved.url },
+      select: GAME_SELECT,
+    });
+    const { _count, ...rest } = updated;
+    return { ...rest, approvedCount: _count.applications, upload: saved };
   }
 
   private async findOwnedOrAdmin(id: string, user: UserPublic) {

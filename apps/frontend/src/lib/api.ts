@@ -218,6 +218,27 @@ export async function apiChangePassword(
   });
 }
 
+export async function apiVerifyEmail(token: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function apiRequestPasswordReset(email: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/request-password-reset', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function apiResetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 export type BookmarkTargetType = 'CONTENT' | 'HELP' | 'SYSTEM' | 'KIT';
 
 export interface BookmarkItem {
@@ -332,6 +353,38 @@ export async function apiUploadImage(file: File): Promise<UploadImageResult> {
   }
 
   return (body as ApiResponse<UploadImageResult>).data;
+}
+
+/** Upload game cover (GAME_MASTER owner or ADMIN). */
+export async function apiUploadGameCover(gameId: string, file: File): Promise<UploadImageResult> {
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('inrium_access_token')
+      : null;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${getBaseUrl()}/games/${gameId}/cover`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  const body = await res.json() as ApiResponse<{ upload: UploadImageResult }> | ApiError;
+
+  if (res.status === 401) throw new Error('Увійдіть в акаунт');
+  if (res.status === 403) throw new Error('Недостатньо прав для завантаження обкладинки');
+  if (res.status === 413) throw new Error('Файл занадто великий (макс. 5 MB)');
+  if (res.status === 415) throw new Error('Дозволені лише JPG, PNG або WebP');
+  if (!res.ok || !body.success) {
+    const err = body as ApiError;
+    throw new Error(err.message ?? `Upload failed (${res.status})`);
+  }
+
+  return (body as ApiResponse<{ upload: UploadImageResult }>).data.upload;
 }
 
 // ─── CMS (Admin only) ─────────────────────────────────────────────────────────
@@ -606,6 +659,7 @@ export interface HomeStats {
   systems: number;
   kits: number;
   help: number;
+  games: number;
 }
 
 export interface HelpItem {
@@ -625,7 +679,21 @@ export interface HomeData {
   systems: GameSystem[];
   kits: Kit[];
   helpItems: HelpItem[];
+  games: GameListItem[];
   stats: HomeStats;
+}
+
+export interface HomePageBlock {
+  id: string;
+  type: string;
+  title: string;
+  subtitle: string | null;
+  position: number;
+  enabled: boolean;
+}
+
+export async function apiGetHomeBlocks(): Promise<HomePageBlock[]> {
+  return apiFetch<HomePageBlock[]>('/home-blocks', { cache: 'no-store' });
 }
 
 export async function apiGetHome(): Promise<HomeData> {
@@ -699,6 +767,7 @@ export interface GameListItem {
   slug: string;
   title: string;
   description: string;
+  coverImageUrl?: string | null;
   status: string;
   maxPlayers: number | null;
   startsAt: string | null;
@@ -780,6 +849,7 @@ export interface CreateGamePayload {
   maxPlayers?: number;
   startsAt?: string;
   gameSystemId?: string;
+  coverImageUrl?: string;
 }
 
 export type UpdateGamePayload = Partial<CreateGamePayload>;
@@ -880,4 +950,76 @@ export async function apiGetCommunities(
 
 export async function apiGetCommunityBySlug(slug: string): Promise<Community> {
   return apiFetch<Community>(`/communities/${slug}`, { cache: 'no-store' });
+}
+
+// ─── Admin users ──────────────────────────────────────────────────────────────
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: AuthUser['role'];
+  status: AuthUser['status'];
+  avatarUrl: string | null;
+  bio: string | null;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserList extends PaginatedList {
+  items: AdminUser[];
+}
+
+export async function apiGetAdminUsers(query: { page?: number; limit?: number; search?: string } = {}): Promise<AdminUserList> {
+  const qs = buildQuery(query);
+  return apiFetchAuth<AdminUserList>(`/users${qs}`);
+}
+
+export async function apiAdminUpdateUserRole(userId: string, role: AuthUser['role']): Promise<AdminUser> {
+  return apiFetchAuth<AdminUser>(`/users/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}
+
+// ─── Admin communities ────────────────────────────────────────────────────────
+
+export async function apiGetAdminCommunities(): Promise<Community[]> {
+  return apiFetchAuth<Community[]>('/communities/admin/list');
+}
+
+export async function apiCreateCommunity(payload: {
+  name: string;
+  slug?: string;
+  description: string;
+  coverImageUrl?: string;
+  isPublished?: boolean;
+}): Promise<Community> {
+  return apiFetchAuth<Community>('/communities', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiUpdateCommunity(
+  id: string,
+  payload: Partial<{ name: string; slug: string; description: string; coverImageUrl: string; isPublished: boolean }>,
+): Promise<Community> {
+  return apiFetchAuth<Community>(`/communities/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiDeleteCommunity(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
+  const res = await fetch(`${getBaseUrl()}/communities/${id}`, {
+    method: 'DELETE',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({})) as ApiError;
+    throw new Error(body.message ?? `Delete failed: ${res.status}`);
+  }
 }

@@ -9,6 +9,7 @@ import { UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import type { RegisterDto } from './dto/register.dto';
 import type { LoginDto } from './dto/login.dto';
 import type {
@@ -61,6 +62,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   // ── Token helpers ──────────────────────────────────────────────────────────
@@ -142,6 +144,7 @@ export class AuthService {
       throw new ConflictException('Email is already registered');
     }
 
+    const verificationToken = randomUUID();
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.prisma.user.create({
@@ -149,15 +152,13 @@ export class AuthService {
         email: dto.email,
         passwordHash,
         displayName: dto.displayName,
-        emailVerificationToken: randomUUID(),
+        emailVerificationToken: verificationToken,
         emailVerificationExpiresAt: new Date(Date.now() + 86400000),
       },
       select: USER_SELECT,
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[dev] Email verification token for ${user.email}: check user record`);
-    }
+    await this.email.sendVerificationEmail(user.email, verificationToken);
 
     const { refreshToken } = await this.createSession(user.id, meta);
     return this.buildTokens(user, refreshToken);
@@ -299,9 +300,7 @@ export class AuthService {
       },
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[dev] Password reset token for ${email}: ${token}`);
-    }
+    await this.email.sendPasswordResetEmail(email, token);
 
     return { message: 'If the email exists, a reset link was sent' };
   }

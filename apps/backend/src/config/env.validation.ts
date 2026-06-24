@@ -41,6 +41,17 @@ export const envValidationSchema = Joi.object({
 
   // Local file uploads (cover images)
   UPLOADS_DIR: Joi.string().default('uploads'),
+
+  // Public site URL for email links (defaults to first CORS origin)
+  SITE_URL: Joi.string().uri().optional(),
+
+  // SMTP (optional — dev falls back to console log when unset)
+  SMTP_HOST: Joi.string().optional().allow(''),
+  SMTP_PORT: Joi.number().default(587),
+  SMTP_SECURE: Joi.string().valid('true', 'false').default('false'),
+  SMTP_USER: Joi.string().optional().allow(''),
+  SMTP_PASS: Joi.string().optional().allow(''),
+  SMTP_FROM: Joi.string().optional().allow(''),
 }).options({
   allowUnknown: true,
   abortEarly: false,

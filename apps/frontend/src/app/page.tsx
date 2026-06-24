@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetHome, type HomeData, type ContentItem, type GameSystem, type Kit, type HelpItem } from '@/lib/api';
+import { apiGetHome, apiGetHomeBlocks, resolveMediaUrl, type HomeData, type HomePageBlock, type ContentItem, type GameSystem, type Kit, type HelpItem, type GameListItem } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +28,20 @@ const TYPE_COLOR: Record<string, string> = {
 const COMPLEXITY_COLOR: Record<string, string> = {
   'Початківець': '#10b981', 'Середній': '#f59e0b', 'Просунутий': '#ef4444', 'Hardcore': '#a855f7',
 };
+
+const GAME_STATUS_LABEL: Record<string, string> = {
+  OPEN: 'Відкрита', FULL: 'Заповнена', IN_PROGRESS: 'Триває', FINISHED: 'Завершена',
+};
+
+const DEFAULT_HOME_BLOCKS: HomePageBlock[] = [
+  { id: 'fb-hero', type: 'HERO', title: 'Головний банер', subtitle: null, position: 0, enabled: true },
+  { id: 'fb-featured', type: 'FEATURED_GRID', title: 'Рекомендовано', subtitle: null, position: 1, enabled: true },
+  { id: 'fb-news', type: 'LATEST_NEWS', title: 'Останні новини', subtitle: null, position: 2, enabled: true },
+  { id: 'fb-games', type: 'GAMES', title: 'Ігрові сесії', subtitle: null, position: 3, enabled: true },
+  { id: 'fb-systems', type: 'GAME_SYSTEMS', title: 'Ігрові системи', subtitle: null, position: 4, enabled: true },
+  { id: 'fb-kits', type: 'KITS', title: 'Набори', subtitle: null, position: 5, enabled: true },
+  { id: 'fb-help', type: 'HELP', title: 'Довідка', subtitle: null, position: 6, enabled: true },
+];
 
 function formatDate(d: string | null) {
   if (!d) return '';
@@ -131,7 +145,7 @@ function KitCard({ kit }: { kit: Kit }) {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function HeroSection({ stats }: { stats: HomeData['stats'] }) {
+function HeroSection({ stats, subtitle }: { stats: HomeData['stats']; subtitle?: string | null }) {
   return (
     <section style={{
       position: 'relative', borderRadius: 16, overflow: 'hidden',
@@ -153,7 +167,7 @@ function HeroSection({ stats }: { stats: HomeData['stats'] }) {
         </h1>
 
         <p style={{ fontSize: 16, color: 'var(--text-dim)', lineHeight: 1.7, marginBottom: 32, maxWidth: 560 }}>
-          Системи, новини, статті, набори та спільнота для гравців і майстрів. Все необхідне для ваших кампаній в одному місці.
+          {subtitle?.trim() || 'Системи, новини, статті, набори та спільнота для гравців і майстрів. Все необхідне для ваших кампаній в одному місці.'}
         </p>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 36 }}>
@@ -176,6 +190,7 @@ function HeroSection({ stats }: { stats: HomeData['stats'] }) {
             { label: 'Статей', value: stats.articles, color: '#ec4899' },
             { label: 'Новин', value: stats.news, color: '#f59e0b' },
             { label: 'Довідок', value: stats.help, color: '#f7971f' },
+            { label: 'Ігор', value: stats.games, color: '#10b981' },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 26, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
@@ -188,12 +203,46 @@ function HeroSection({ stats }: { stats: HomeData['stats'] }) {
   );
 }
 
+// ─── Game card ────────────────────────────────────────────────────────────────
+
+function GameCard({ game }: { game: GameListItem }) {
+  const imageSrc = resolveMediaUrl(game.coverImageUrl);
+  return (
+    <Link href={`/games/${game.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
+      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {imageSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageSrc} alt={game.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8 }} />
+        ) : (
+          <div style={{ width: '100%', height: 80, borderRadius: 8, background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(139,92,246,0.08) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎲</div>
+        )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
+            {GAME_STATUS_LABEL[game.status] ?? game.status}
+          </span>
+          {game.gameSystem && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{game.gameSystem.title}</span>}
+        </div>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, margin: 0 }}>{game.title}</h3>
+        <p className="line-clamp-2" style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6, margin: 0, flex: 1 }}>{game.description}</p>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>🧙 {game.master.displayName}</div>
+      </article>
+    </Link>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
   let data: HomeData | null = null;
+  let blocks: HomePageBlock[] = DEFAULT_HOME_BLOCKS;
+
   try {
-    data = await apiGetHome();
+    const [homeResult, blocksResult] = await Promise.all([
+      apiGetHome(),
+      apiGetHomeBlocks().catch(() => [] as HomePageBlock[]),
+    ]);
+    data = homeResult;
+    if (blocksResult.length > 0) blocks = blocksResult;
   } catch {
     // Graceful fallback — show empty sections
   }
@@ -204,34 +253,34 @@ export default async function HomePage() {
   const systems = data?.systems ?? [];
   const kits = data?.kits ?? [];
   const helpItems: HelpItem[] = data?.helpItems ?? [];
-  const stats = data?.stats ?? { news: 0, articles: 0, systems: 0, kits: 0, help: 0 };
+  const games = data?.games ?? [];
+  const stats = data?.stats ?? { news: 0, articles: 0, systems: 0, kits: 0, help: 0, games: 0 };
 
-  return (
-    <>
-      <Header />
-      <main style={{ minHeight: '100vh' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 64px' }}>
+  const enabledBlocks = blocks.filter((b) => b.enabled).sort((a, b) => a.position - b.position);
 
-          {/* ── Hero ── */}
-          <div style={{ marginBottom: 48 }}>
-            <HeroSection stats={stats} />
+  function renderBlock(block: HomePageBlock) {
+    switch (block.type) {
+      case 'HERO':
+        return (
+          <div key={block.id} style={{ marginBottom: 48 }}>
+            <HeroSection stats={stats} subtitle={block.subtitle} />
           </div>
-
-          {/* ── Featured ── */}
-          {featured.length > 0 && (
-            <section style={{ marginBottom: 52 }}>
-              <SectionHeader title="Рекомендовано" href="/articles" accent="#a78bfa" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-                {featured.map((item) => <ContentCard key={item.id} item={item} />)}
-              </div>
-            </section>
-          )}
-
-          {/* ── News + Articles 2-col ── */}
-          <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 52 }}>
-            {/* News */}
+        );
+      case 'FEATURED_GRID':
+        if (featured.length === 0) return null;
+        return (
+          <section key={block.id} style={{ marginBottom: 52 }}>
+            <SectionHeader title={block.title} href="/articles" accent="#a78bfa" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+              {featured.map((item) => <ContentCard key={item.id} item={item} />)}
+            </div>
+          </section>
+        );
+      case 'LATEST_NEWS':
+        return (
+          <section key={block.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 52 }}>
             <div>
-              <SectionHeader title="Останні новини" href="/news" accent="#f59e0b" count={stats.news} />
+              <SectionHeader title={block.title} href="/news" accent="#f59e0b" count={stats.news} />
               {latestNews.length === 0 ? (
                 <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Новин поки немає</div>
               ) : (
@@ -240,8 +289,6 @@ export default async function HomePage() {
                 </div>
               )}
             </div>
-
-            {/* Articles */}
             <div>
               <SectionHeader title="Нові статті" href="/articles" accent="#ec4899" count={stats.articles} />
               {latestArticles.length === 0 ? (
@@ -253,50 +300,84 @@ export default async function HomePage() {
               )}
             </div>
           </section>
-
-          {/* ── Systems ── */}
-          <section style={{ marginBottom: 52 }}>
-            <SectionHeader title="Ігрові системи" href="/systems" accent="#a78bfa" count={stats.systems} />
+        );
+      case 'POPULAR_ARTICLES':
+        if (latestArticles.length === 0) return null;
+        return (
+          <section key={block.id} style={{ marginBottom: 52 }}>
+            <SectionHeader title={block.title} href="/articles" accent="#ec4899" count={stats.articles} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+              {latestArticles.map((item) => <ContentCard key={item.id} item={item} />)}
+            </div>
+          </section>
+        );
+      case 'GAMES':
+        if (games.length === 0) return null;
+        return (
+          <section key={block.id} style={{ marginBottom: 52 }}>
+            <SectionHeader title={block.title} href="/games" accent="#10b981" count={stats.games} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+              {games.map((g) => <GameCard key={g.id} game={g} />)}
+            </div>
+          </section>
+        );
+      case 'GAME_SYSTEMS':
+        return (
+          <section key={block.id} style={{ marginBottom: 52 }}>
+            <SectionHeader title={block.title} href="/systems" accent="#a78bfa" count={stats.systems} />
             {systems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>🎲 Системи скоро з'являться</div>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>🎲 Системи скоро з&apos;являться</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
                 {systems.map((s) => <SystemCard key={s.id} system={s} />)}
               </div>
             )}
           </section>
-
-          {/* ── Kits ── */}
-          <section style={{ marginBottom: 40 }}>
-            <SectionHeader title="Набори" href="/kits" accent="#10b981" count={stats.kits} />
+        );
+      case 'KITS':
+        return (
+          <section key={block.id} style={{ marginBottom: 40 }}>
+            <SectionHeader title={block.title} href="/kits" accent="#10b981" count={stats.kits} />
             {kits.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>📦 Набори скоро з'являться</div>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>📦 Набори скоро з&apos;являться</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
                 {kits.map((k) => <KitCard key={k.id} kit={k} />)}
               </div>
             )}
           </section>
-
-          {/* ── Help section ── */}
-          {helpItems.length > 0 && (
-            <section style={{ marginBottom: 52 }}>
-              <SectionHeader title="Довідка" href="/help" accent="#f7971f" count={stats.help} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                {helpItems.map((item) => (
-                  <Link key={item.id} href={`/help/${item.slug}`} style={{ textDecoration: 'none' }}>
-                    <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', cursor: 'pointer', height: '100%', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(247,151,31,0.1)', border: '1px solid rgba(247,151,31,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📖</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4, lineHeight: 1.35 }}>{item.title}</div>
-                        {item.excerpt && <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.excerpt}</div>}
-                      </div>
+        );
+      case 'HELP':
+        if (helpItems.length === 0) return null;
+        return (
+          <section key={block.id} style={{ marginBottom: 52 }}>
+            <SectionHeader title={block.title} href="/help" accent="#f7971f" count={stats.help} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+              {helpItems.map((item) => (
+                <Link key={item.id} href={`/help/${item.slug}`} style={{ textDecoration: 'none' }}>
+                  <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', cursor: 'pointer', height: '100%', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(247,151,31,0.1)', border: '1px solid rgba(247,151,31,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>📖</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4, lineHeight: 1.35 }}>{item.title}</div>
+                      {item.excerpt && <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.excerpt}</div>}
                     </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        );
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <>
+      <Header />
+      <main style={{ minHeight: '100vh' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 64px' }}>
+          {enabledBlocks.map((block) => renderBlock(block))}
 
           {/* ── CTA strip ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 16 }}>

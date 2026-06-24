@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { UserStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { UserPublic } from '../auth/types/auth-response.type';
 import type { ChangePasswordDto } from './dto/change-password.dto';
@@ -102,16 +102,26 @@ export class UsersService {
     return user;
   }
 
-  async adminList(page = 1, limit = 20) {
+  async adminList(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
+    const where = search?.trim()
+      ? {
+          OR: [
+            { email: { contains: search.trim(), mode: 'insensitive' as const } },
+            { displayName: { contains: search.trim(), mode: 'insensitive' as const } },
+          ],
+        }
+      : undefined;
+
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
+        where,
         select: USER_SELECT,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
     return {
       items,
@@ -120,5 +130,16 @@ export class UsersService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async adminUpdateRole(userId: string, role: UserRole): Promise<UserPublic> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+      select: USER_SELECT,
+    });
   }
 }

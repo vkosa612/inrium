@@ -32,6 +32,14 @@ export class CommunitiesController {
     return this.communitiesService.list(query);
   }
 
+  @Get('admin/list')
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin: list all communities' })
+  adminList() {
+    return this.communitiesService.adminList();
+  }
+
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get community by slug' })

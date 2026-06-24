@@ -18,7 +18,8 @@ const QUICK_LINKS = [
   { label: 'Контент', desc: 'Новини, статті та матеріали', href: '/admin/content', icon: '📋', soon: false },
   { label: 'Ігрові системи', desc: 'Огляди та описи систем', href: '/admin/systems', icon: '🎲', soon: false },
   { label: 'Набори', desc: 'Стартові набори та інструменти', href: '/admin/kits', icon: '📦', soon: false },
-  { label: 'Користувачі', desc: 'Управління акаунтами', href: '/admin/users', icon: '👤', soon: true },
+  { label: 'Користувачі', desc: 'Ролі та акаунти', href: '/admin/users', icon: '👤', soon: false },
+  { label: 'Спільноти', desc: 'Керування спільнотами', href: '/admin/communities', icon: '👥', soon: false },
   { label: 'Головна сторінка', desc: 'Блоки та виділений контент', href: '/admin/home-blocks', icon: '🏠', soon: false },
   { label: 'Налаштування', desc: 'Конфігурація платформи', href: '/admin/settings', icon: '⚙️', soon: true },
 ];

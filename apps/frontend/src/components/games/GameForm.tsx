@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import ImageUpload from '@/components/ImageUpload';
 import {
   apiCreateGame,
   apiGetSystems,
   apiUpdateGame,
+  apiUploadGameCover,
   type CreateGamePayload,
   type GameListItem,
   type GameStatus,
@@ -60,6 +62,7 @@ export default function GameForm({ initial }: GameFormProps) {
   const [maxPlayers, setMaxPlayers] = useState(initial?.maxPlayers?.toString() ?? '');
   const [startsAt, setStartsAt] = useState(toDatetimeLocalValue(initial?.startsAt));
   const [gameSystemId, setGameSystemId] = useState(initial?.gameSystem?.id ?? '');
+  const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl ?? '');
   const [systems, setSystems] = useState<Array<{ id: string; title: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +89,7 @@ export default function GameForm({ initial }: GameFormProps) {
       maxPlayers: maxPlayers ? parseInt(maxPlayers, 10) : undefined,
       startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
       gameSystemId: gameSystemId || undefined,
+      coverImageUrl: coverImageUrl.trim() || undefined,
     };
     try {
       if (isEdit && initial) {
@@ -122,6 +126,19 @@ export default function GameForm({ initial }: GameFormProps) {
         <label style={labelStyle}>Опис *</label>
         <MarkdownEditor value={description} onChange={setDescription} minHeight={200} />
       </div>
+      {isEdit && initial ? (
+        <ImageUpload
+          label="Обкладинка гри"
+          value={coverImageUrl}
+          onChange={setCoverImageUrl}
+          uploadFn={(file) => apiUploadGameCover(initial.id, file)}
+          helperText="JPG, PNG, WebP"
+        />
+      ) : (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+          Обкладинку можна завантажити після створення гри.
+        </p>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
           <label style={labelStyle}>Статус</label>

@@ -414,9 +414,10 @@ async function main() {
     { type: HomePageBlockType.HERO, title: 'Головний банер', position: 0 },
     { type: HomePageBlockType.FEATURED_GRID, title: 'Вибране', position: 1 },
     { type: HomePageBlockType.LATEST_NEWS, title: 'Останні новини', position: 2 },
-    { type: HomePageBlockType.GAME_SYSTEMS, title: 'Ігрові системи', position: 3 },
-    { type: HomePageBlockType.KITS, title: 'Набори', position: 4 },
-    { type: HomePageBlockType.HELP, title: 'Допомога', position: 5 },
+    { type: HomePageBlockType.GAMES, title: 'Ігрові сесії', position: 3 },
+    { type: HomePageBlockType.GAME_SYSTEMS, title: 'Ігрові системи', position: 4 },
+    { type: HomePageBlockType.KITS, title: 'Набори', position: 5 },
+    { type: HomePageBlockType.HELP, title: 'Допомога', position: 6 },
   ];
 
   for (const def of blockDefs) {

@@ -42,4 +42,6 @@ Example Nginx config: `docker/nginx/nginx.conf.example`
 
 ## Email / password reset
 
-In development, reset tokens are logged to backend console. Wire SMTP in production before enabling public registration.
+Configure SMTP in `.env` (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SITE_URL`).
+
+In development without SMTP, verification/reset links are logged to backend console with `[dev-only]` prefix — never in API responses.

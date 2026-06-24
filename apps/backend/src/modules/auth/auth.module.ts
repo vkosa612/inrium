@@ -11,7 +11,6 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 @Module({
   imports: [
     PassportModule,
-    // JwtModule with no default config — auth service signs with explicit secrets
     JwtModule.register({}),
     PrismaModule,
   ],

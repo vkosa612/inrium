@@ -50,4 +50,9 @@ export class CreateGameDto {
   @IsOptional()
   @IsString()
   gameSystemId?: string;
+
+  @ApiPropertyOptional({ description: 'Cover image URL (/uploads/... or https://)' })
+  @IsOptional()
+  @IsString()
+  coverImageUrl?: string;
 }
