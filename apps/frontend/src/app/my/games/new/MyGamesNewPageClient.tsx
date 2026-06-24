@@ -4,25 +4,8 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GameForm from '@/components/games/GameForm';
-import { useRequireGameMaster } from '@/components/games/useRequireGameMaster';
 
 export default function MyGamesNewPageClient() {
-  const { user, isLoading, allowed } = useRequireGameMaster();
-
-  if (isLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (!allowed) return null;
-
   return (
     <>
       <Header />
@@ -32,7 +15,8 @@ export default function MyGamesNewPageClient() {
           <span style={{ color: 'var(--border)' }}>/</span>
           <span style={{ color: 'var(--text-dim)' }}>Нова гра</span>
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>Створити гру</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Створити гру</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>Заповніть деталі ігрової сесії</p>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 32 }}>
           <GameForm />
         </div>

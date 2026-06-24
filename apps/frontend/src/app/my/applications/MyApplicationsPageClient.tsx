@@ -2,16 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
 import { apiGetMyApplications, type MyGameApplication } from '@/lib/api';
 import { APPLICATION_STATUS_COLOR, APPLICATION_STATUS_LABEL, formatGameDate } from '@/lib/game-labels';
+import { formatApiError } from '@/lib/formatApiError';
 
 export default function MyApplicationsPageClient() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
   const [applications, setApplications] = useState<MyGameApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,32 +19,15 @@ export default function MyApplicationsPageClient() {
     try {
       setApplications(await apiGetMyApplications());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не вдалося завантажити заявки');
+      setError(formatApiError(err, 'Не вдалося завантажити заявки'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.replace('/login?redirect=/my/applications');
-      return;
-    }
     void load();
-  }, [user, authLoading, router, load]);
-
-  if (authLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
+  }, [load]);
 
   return (
     <>
@@ -63,7 +43,7 @@ export default function MyApplicationsPageClient() {
         )}
 
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
+          <p style={{ color: 'var(--text-muted)' }}>Завантаження заявок…</p>
         ) : applications.length === 0 ? (
           <p style={{ color: 'var(--text-dim)' }}>
             Ви ще не подавали заявок. Перегляньте{' '}

@@ -5,12 +5,12 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import ContentForm from '@/components/admin/ContentForm';
 import { apiGetContentByIdAdmin, apiDeleteContent, type ContentItemAdmin } from '@/lib/api';
+import { formatApiError } from '@/lib/formatApiError';
 
-export default function AdminContentEditPage() {
-  const { user, isLoading: authLoading } = useAuth();
+function AdminContentEditContent() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
@@ -21,24 +21,20 @@ export default function AdminContentEditPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') { router.replace('/'); return; }
-
     async function load() {
       setLoading(true);
+      setFetchError('');
       try {
-        const data = await apiGetContentByIdAdmin(id);
-        setItem(data);
+        setItem(await apiGetContentByIdAdmin(id));
       } catch (e) {
-        setFetchError(e instanceof Error ? e.message : 'Не вдалося завантажити матеріал');
+        setFetchError(formatApiError(e, 'Не вдалося завантажити матеріал'));
       } finally {
         setLoading(false);
       }
     }
 
     void load();
-  }, [user, authLoading, router, id]);
+  }, [id]);
 
   async function handleDelete() {
     if (!item) return;
@@ -48,18 +44,19 @@ export default function AdminContentEditPage() {
       await apiDeleteContent(item.id);
       router.push('/admin/content');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Помилка видалення');
+      alert(formatApiError(e, 'Помилка видалення'));
       setDeleting(false);
     }
   }
 
-  if (authLoading || (!item && loading)) {
+  if (loading) {
     return (
       <>
         <Header />
-        <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'var(--text-muted)' }}>Завантаження…</div>
+        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'var(--text-muted)' }}>Завантаження матеріалу…</p>
         </main>
+        <Footer />
       </>
     );
   }
@@ -68,10 +65,10 @@ export default function AdminContentEditPage() {
     return (
       <>
         <Header />
-        <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ textAlign: 'center', maxWidth: 440 }}>
             <p style={{ fontSize: 16, color: '#ef4444', marginBottom: 20 }}>{fetchError}</p>
-            <Link href="/admin/content" style={{ color: '#f59e0b', textDecoration: 'underline' }}>
+            <Link href="/admin/content" style={{ color: '#f59e0b', textDecoration: 'none', fontWeight: 600 }}>
               ← Назад до списку
             </Link>
           </div>
@@ -86,8 +83,6 @@ export default function AdminContentEditPage() {
       <Header />
       <main style={{ minHeight: '100vh' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px' }}>
-
-          {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, fontSize: 13 }}>
             <Link href="/admin" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Адмін</Link>
             <span style={{ color: 'var(--border)' }}>/</span>
@@ -103,8 +98,8 @@ export default function AdminContentEditPage() {
               <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>
                 Редагувати матеріал
               </h1>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                ID: {id}
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Оновіть поля та збережіть зміни
               </p>
             </div>
 
@@ -128,6 +123,7 @@ export default function AdminContentEditPage() {
                 </Link>
               )}
               <button
+                type="button"
                 onClick={() => { void handleDelete(); }}
                 disabled={deleting}
                 style={{
@@ -159,5 +155,13 @@ export default function AdminContentEditPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminContentEditPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminContentEditContent />
+    </AdminRouteShell>
   );
 }

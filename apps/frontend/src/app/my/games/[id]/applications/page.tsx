@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import GameApplicationsPageClient from './GameApplicationsPageClient';
+import GameApplicationsPage from './GameApplicationsPage';
 
 export const metadata: Metadata = {
   title: 'Заявки на гру — INRIUM',
@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function GameApplicationsPage({ params }: Props) {
+export default async function GameApplicationsPageRoute({ params }: Props) {
   const { id } = await params;
-  return <GameApplicationsPageClient gameId={id} />;
+  return <GameApplicationsPage gameId={id} />;
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import MyGameEditPageClient from './MyGameEditPageClient';
+import MyGameEditPage from './MyGameEditPage';
 
 export const metadata: Metadata = {
   title: 'Редагувати гру — INRIUM',
@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function MyGameEditPage({ params }: Props) {
+export default async function MyGameEditPageRoute({ params }: Props) {
   const { id } = await params;
-  return <MyGameEditPageClient id={id} />;
+  return <MyGameEditPage id={id} />;
 }

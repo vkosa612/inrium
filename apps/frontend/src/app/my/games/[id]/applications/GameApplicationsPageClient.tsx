@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useRequireGameMaster } from '@/components/games/useRequireGameMaster';
 import {
   apiApproveGameApplication,
   apiGetGameApplications,
@@ -14,13 +13,13 @@ import {
   type GameListItem,
 } from '@/lib/api';
 import { APPLICATION_STATUS_COLOR, APPLICATION_STATUS_LABEL, formatGameDate, GAME_STATUS_LABEL } from '@/lib/game-labels';
+import { formatApiError } from '@/lib/formatApiError';
 
 interface Props {
   gameId: string;
 }
 
 export default function GameApplicationsPageClient({ gameId }: Props) {
-  const { user, isLoading, allowed } = useRequireGameMaster();
   const [game, setGame] = useState<GameListItem | null>(null);
   const [applications, setApplications] = useState<GameApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,16 +37,15 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
       setGame(g);
       setApplications(apps);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не вдалося завантажити заявки');
+      setError(formatApiError(err, 'Не вдалося завантажити заявки'));
     } finally {
       setLoading(false);
     }
   }, [gameId]);
 
   useEffect(() => {
-    if (!allowed) return;
     void load();
-  }, [allowed, load]);
+  }, [load]);
 
   async function handleAction(appId: string, action: 'approve' | 'reject') {
     setActingId(appId);
@@ -58,29 +56,14 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
         : await apiRejectGameApplication(gameId, appId);
       setApplications((prev) => prev.map((a) => (a.id === appId ? { ...a, ...updated } : a)));
       if (game) {
-        const g = await apiGetGameById(gameId);
-        setGame(g);
+        setGame(await apiGetGameById(gameId));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не вдалося оновити заявку');
+      setError(formatApiError(err, 'Не вдалося оновити заявку'));
     } finally {
       setActingId(null);
     }
   }
-
-  if (isLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (!allowed) return null;
 
   return (
     <>

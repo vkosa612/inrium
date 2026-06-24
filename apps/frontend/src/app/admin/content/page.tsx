@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import {
   apiGetAdminContentList,
   apiDeleteContent,
@@ -13,6 +12,7 @@ import {
   type ContentType,
   type ContentStatus,
 } from '@/lib/api';
+import { formatApiError } from '@/lib/formatApiError';
 
 const TYPE_LABEL: Record<ContentType, string> = {
   NEWS: 'Новини',
@@ -69,10 +69,7 @@ function Badge({ label, color }: { label: string; color: string }) {
   );
 }
 
-export default function AdminContentPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
-
+function AdminContentContent() {
   const [items, setItems] = useState<ContentItemAdmin[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -84,12 +81,6 @@ export default function AdminContentPage() {
   const [statusFilter, setStatusFilter] = useState<ContentStatus | ''>('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') { router.replace('/'); }
-  }, [user, authLoading, router]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,17 +95,15 @@ export default function AdminContentPage() {
       setItems(result.items);
       setTotal(result.total);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Помилка завантаження');
+      setError(formatApiError(e));
     } finally {
       setLoading(false);
     }
   }, [typeFilter, statusFilter, search]);
 
   useEffect(() => {
-    if (user && (user.role === 'ADMIN' || user.role === 'EDITOR')) {
-      void load();
-    }
-  }, [load, user]);
+    void load();
+  }, [load]);
 
   async function handleDelete(id: string, title: string) {
     if (!window.confirm(`Видалити "${title}"?\nЦю дію не можна скасувати.`)) return;
@@ -124,7 +113,7 @@ export default function AdminContentPage() {
       setItems((prev) => prev.filter((i) => i.id !== id));
       setTotal((t) => t - 1);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Помилка видалення');
+      alert(formatApiError(e, 'Помилка видалення'));
     } finally {
       setDeleting(null);
     }
@@ -133,17 +122,6 @@ export default function AdminContentPage() {
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSearch(searchInput);
-  }
-
-  if (authLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Завантаження…</div>
-        </main>
-      </>
-    );
   }
 
   return (
@@ -436,5 +414,13 @@ export default function AdminContentPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminContentPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminContentContent />
+    </AdminRouteShell>
   );
 }

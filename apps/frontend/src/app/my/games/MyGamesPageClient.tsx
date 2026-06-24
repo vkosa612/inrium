@@ -4,12 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useRequireGameMaster } from '@/components/games/useRequireGameMaster';
 import { apiDeleteGame, apiGetMyGames, type MyGameItem } from '@/lib/api';
 import { formatGameDate, GAME_STATUS_LABEL } from '@/lib/game-labels';
+import { formatApiError } from '@/lib/formatApiError';
 
 export default function MyGamesPageClient() {
-  const { user, isLoading, allowed } = useRequireGameMaster();
   const [games, setGames] = useState<MyGameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,16 +20,15 @@ export default function MyGamesPageClient() {
     try {
       setGames(await apiGetMyGames());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не вдалося завантажити ігри');
+      setError(formatApiError(err, 'Не вдалося завантажити ігри'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!allowed) return;
     void load();
-  }, [allowed, load]);
+  }, [load]);
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Видалити гру «${title}»?`)) return;
@@ -39,25 +37,11 @@ export default function MyGamesPageClient() {
       await apiDeleteGame(id);
       setGames((prev) => prev.filter((g) => g.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не вдалося видалити гру');
+      setError(formatApiError(err, 'Не вдалося видалити гру'));
     } finally {
       setDeletingId(null);
     }
   }
-
-  if (isLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (!allowed) return null;
 
   return (
     <>

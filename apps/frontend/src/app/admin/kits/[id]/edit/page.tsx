@@ -5,12 +5,12 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import KitForm from '@/components/admin/KitForm';
 import { apiGetKitByIdAdmin, apiDeleteKit, type KitFull } from '@/lib/api';
+import { formatApiError } from '@/lib/formatApiError';
 
-export default function AdminKitEditPage() {
-  const { user, isLoading: authLoading } = useAuth();
+function AdminKitEditContent() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
@@ -20,27 +20,49 @@ export default function AdminKitEditPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') { router.replace('/'); return; }
     async function load() {
       setLoading(true);
+      setFetchError('');
       try { setItem(await apiGetKitByIdAdmin(id)); }
-      catch (e) { setFetchError(e instanceof Error ? e.message : 'Помилка'); }
+      catch (e) { setFetchError(formatApiError(e, 'Не вдалося завантажити набір')); }
       finally { setLoading(false); }
     }
     void load();
-  }, [user, authLoading, router, id]);
+  }, [id]);
 
   async function handleDelete() {
     if (!item || !window.confirm(`Видалити "${item.title}"?`)) return;
     setDeleting(true);
     try { await apiDeleteKit(item.id); router.push('/admin/kits'); }
-    catch (e) { alert(e instanceof Error ? e.message : 'Помилка'); setDeleting(false); }
+    catch (e) { alert(formatApiError(e, 'Помилка видалення')); setDeleting(false); }
   }
 
-  if (authLoading || loading) return <><Header /><main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'var(--text-muted)' }}>Завантаження…</div></main></>;
-  if (fetchError) return <><Header /><main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ textAlign: 'center' }}><p style={{ color: '#ef4444', marginBottom: 16 }}>{fetchError}</p><Link href="/admin/kits" style={{ color: '#10b981' }}>← Назад</Link></div></main><Footer /></>;
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'var(--text-muted)' }}>Завантаження набору…</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <>
+        <Header />
+        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', marginBottom: 16 }}>{fetchError}</p>
+            <Link href="/admin/kits" style={{ color: '#10b981', textDecoration: 'none', fontWeight: 600 }}>← Назад до списку</Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -55,10 +77,13 @@ export default function AdminKitEditPage() {
             <span style={{ color: 'var(--text-dim)' }}>{item?.title ?? id}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Редагувати набір</h1>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Редагувати набір</h1>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>Оновіть опис і параметри набору</p>
+            </div>
             <div style={{ display: 'flex', gap: 10 }}>
               {item?.status === 'PUBLISHED' && <Link href={`/kits/${item.slug}`} target="_blank" style={{ padding: '8px 16px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, color: '#10b981', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>↗ Переглянути</Link>}
-              <button onClick={() => void handleDelete()} disabled={deleting} style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.5 : 1 }}>
+              <button type="button" onClick={() => void handleDelete()} disabled={deleting} style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.5 : 1 }}>
                 {deleting ? 'Видаляю…' : 'Видалити'}
               </button>
             </div>
@@ -70,5 +95,13 @@ export default function AdminKitEditPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminKitEditPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminKitEditContent />
+    </AdminRouteShell>
   );
 }

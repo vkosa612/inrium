@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { apiGetAdminKitsList, apiDeleteKit, type Kit, type ContentStatus } from '@/lib/api';
+import { formatApiError } from '@/lib/formatApiError';
 
 const STATUS_LABEL: Record<string, string> = { DRAFT: 'Чернетка', PUBLISHED: 'Опубліковано', ARCHIVED: 'Архів' };
 const STATUS_COLOR: Record<string, string> = { DRAFT: '#6b7280', PUBLISHED: '#10b981', ARCHIVED: '#ef4444' };
@@ -15,9 +15,7 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function AdminKitsPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
+function AdminKitsContent() {
   const [items, setItems] = useState<Kit[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -27,34 +25,24 @@ export default function AdminKitsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') router.replace('/');
-  }, [user, authLoading, router]);
-
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
       const result = await apiGetAdminKitsList({ status: statusFilter || undefined, search: search || undefined });
       setItems(result.items); setTotal(result.total);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Помилка'); }
+    } catch (e) { setError(formatApiError(e)); }
     finally { setLoading(false); }
   }, [statusFilter, search]);
 
-  useEffect(() => {
-    if (user && (user.role === 'ADMIN' || user.role === 'EDITOR')) void load();
-  }, [load, user]);
+  useEffect(() => { void load(); }, [load]);
 
   async function handleDelete(id: string, title: string) {
     if (!window.confirm(`Видалити "${title}"?`)) return;
     setDeleting(id);
     try { await apiDeleteKit(id); setItems((p) => p.filter((i) => i.id !== id)); setTotal((t) => t - 1); }
-    catch (e) { alert(e instanceof Error ? e.message : 'Помилка'); }
+    catch (e) { alert(formatApiError(e, 'Помилка видалення')); }
     finally { setDeleting(null); }
   }
-
-  if (authLoading || !user) return <><Header /><main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'var(--text-muted)' }}>Завантаження…</div></main></>;
 
   return (
     <>
@@ -143,5 +131,13 @@ export default function AdminKitsPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminKitsPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminKitsContent />
+    </AdminRouteShell>
   );
 }

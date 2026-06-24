@@ -5,15 +5,14 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GameForm from '@/components/games/GameForm';
-import { useRequireGameMaster } from '@/components/games/useRequireGameMaster';
 import { apiGetGameById, type GameListItem } from '@/lib/api';
+import { formatApiError } from '@/lib/formatApiError';
 
 interface Props {
   id: string;
 }
 
 export default function MyGameEditPageClient({ id }: Props) {
-  const { user, isLoading, allowed } = useRequireGameMaster();
   const [game, setGame] = useState<GameListItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,30 +23,15 @@ export default function MyGameEditPageClient({ id }: Props) {
     try {
       setGame(await apiGetGameById(id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Гру не знайдено');
+      setError(formatApiError(err, 'Гру не знайдено'));
     } finally {
       setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    if (!allowed) return;
     void load();
-  }, [allowed, load]);
-
-  if (isLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (!allowed) return null;
+  }, [load]);
 
   return (
     <>
@@ -58,11 +42,17 @@ export default function MyGameEditPageClient({ id }: Props) {
           <span style={{ color: 'var(--border)' }}>/</span>
           <span style={{ color: 'var(--text-dim)' }}>Редагування</span>
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>Редагувати гру</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Редагувати гру</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>Оновіть деталі ігрової сесії</p>
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Завантаження…</p>
+          <p style={{ color: 'var(--text-muted)' }}>Завантаження гри…</p>
         ) : error ? (
-          <p style={{ color: '#ef4444' }}>{error}</p>
+          <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, color: '#ef4444', fontSize: 13 }}>
+            {error}
+            <div style={{ marginTop: 12 }}>
+              <Link href="/my/games" style={{ color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>← Назад до моїх ігор</Link>
+            </div>
+          </div>
         ) : game ? (
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 32 }}>
             <GameForm initial={game} />

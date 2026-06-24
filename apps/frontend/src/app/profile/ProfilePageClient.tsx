@@ -100,11 +100,7 @@ export default function ProfilePageClient() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!ctxUser) {
-      router.replace('/login');
-      return;
-    }
+    if (!ctxUser) return;
 
     Promise.all([apiGetMe(), apiGetBookmarks(), apiGetMyApplications()])
       .then(([fresh, bms, apps]) => {
@@ -123,7 +119,7 @@ export default function ProfilePageClient() {
         setError('Не вдалося завантажити профіль');
       })
       .finally(() => setLoading(false));
-  }, [ctxUser, authLoading, router]);
+  }, [ctxUser]);
 
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
@@ -176,7 +172,7 @@ export default function ProfilePageClient() {
     }
   }
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <>
         <Header />

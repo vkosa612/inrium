@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { useAuth } from '@/context/AuthContext';
 
 const STAT_CARDS = [
@@ -24,43 +23,9 @@ const QUICK_LINKS = [
   { label: 'Налаштування', desc: 'Конфігурація платформи', href: '/admin/settings', icon: '⚙️', soon: true },
 ];
 
-export default function AdminPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') {
-      router.replace('/');
-    }
-  }, [user, isLoading, router]);
-
-  if (isLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                border: '3px solid var(--border)',
-                borderTopColor: 'var(--accent)',
-                borderRadius: '50%',
-                margin: '0 auto 16px',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  if (user.role !== 'ADMIN' && user.role !== 'EDITOR') return null;
+function AdminDashboardContent() {
+  const { user } = useAuth();
+  if (!user) return null;
 
   return (
     <>
@@ -207,5 +172,13 @@ export default function AdminPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminDashboardContent />
+    </AdminRouteShell>
   );
 }

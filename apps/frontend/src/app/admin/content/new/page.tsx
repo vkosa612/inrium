@@ -1,41 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import ContentForm from '@/components/admin/ContentForm';
 
-export default function AdminContentNewPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') router.replace('/');
-  }, [user, isLoading, router]);
-
-  if (isLoading || !user) {
-    return (
-      <>
-        <Header />
-        <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'var(--text-muted)' }}>Завантаження…</div>
-        </main>
-      </>
-    );
-  }
-
+function AdminContentNewContent() {
   return (
     <>
       <Header />
       <main style={{ minHeight: '100vh' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px' }}>
-
-          {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, fontSize: 13 }}>
             <Link href="/admin" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Адмін</Link>
             <span style={{ color: 'var(--border)' }}>/</span>
@@ -65,5 +41,13 @@ export default function AdminContentNewPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminContentNewPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminContentNewContent />
+    </AdminRouteShell>
   );
 }

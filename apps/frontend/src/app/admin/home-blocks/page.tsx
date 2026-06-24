@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { apiFetchAuth } from '@/lib/api';
+import { formatApiError } from '@/lib/formatApiError';
 
 interface HomeBlock {
   id: string;
@@ -16,19 +17,19 @@ interface HomeBlock {
   enabled: boolean;
 }
 
-export default function AdminHomeBlocksPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
+function AdminHomeBlocksContent() {
   const [blocks, setBlocks] = useState<HomeBlock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
-      const data = await apiFetchAuth<HomeBlock[]>('/home-blocks/admin/list');
-      setBlocks(data);
-    } catch {
+      setBlocks(await apiFetchAuth<HomeBlock[]>('/home-blocks/admin/list'));
+    } catch (e) {
+      setError(formatApiError(e));
       setBlocks([]);
     } finally {
       setLoading(false);
@@ -36,17 +37,8 @@ export default function AdminHomeBlocksPage() {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') {
-      router.replace('/');
-      return;
-    }
     void load();
-  }, [user, isLoading, router, load]);
+  }, [load]);
 
   async function toggleEnabled(block: HomeBlock) {
     setSaving(block.id);
@@ -56,20 +48,37 @@ export default function AdminHomeBlocksPage() {
         body: JSON.stringify({ enabled: !block.enabled }),
       });
       await load();
+    } catch (e) {
+      alert(formatApiError(e, 'Не вдалося зберегти'));
     } finally {
       setSaving(null);
     }
   }
 
-  if (isLoading || !user) return null;
-
   return (
     <>
       <Header />
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 24 }}>Блоки головної</h1>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13 }}>
+            <Link href="/admin" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>← Адмін</Link>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>Блоки головної</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>
+            Увімкнення та вимкнення секцій на головній сторінці
+          </p>
+        </div>
+
+        {error && (
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontSize: 13, color: '#ef4444' }}>
+            {error}
+          </div>
+        )}
+
         {loading ? (
-          <p style={{ color: 'var(--text-dim)' }}>Завантаження…</p>
+          <p style={{ color: 'var(--text-muted)' }}>Завантаження блоків…</p>
+        ) : blocks.length === 0 ? (
+          <p style={{ color: 'var(--text-dim)' }}>Блоків не знайдено.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {blocks.map((block) => (
@@ -89,7 +98,7 @@ export default function AdminHomeBlocksPage() {
                 <div>
                   <div style={{ fontWeight: 700, color: 'var(--text)' }}>{block.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {block.type} · pos {block.position}
+                    {block.type} · позиція {block.position}
                     {block.subtitle ? ` · ${block.subtitle}` : ''}
                   </div>
                 </div>
@@ -103,11 +112,11 @@ export default function AdminHomeBlocksPage() {
                     border: '1px solid var(--border)',
                     background: block.enabled ? 'rgba(16,185,129,0.15)' : 'transparent',
                     color: block.enabled ? '#10b981' : 'var(--text-dim)',
-                    cursor: 'pointer',
+                    cursor: saving === block.id ? 'wait' : 'pointer',
                     fontSize: 13,
                   }}
                 >
-                  {block.enabled ? 'Увімкнено' : 'Вимкнено'}
+                  {saving === block.id ? '…' : block.enabled ? 'Увімкнено' : 'Вимкнено'}
                 </button>
               </div>
             ))}
@@ -116,5 +125,13 @@ export default function AdminHomeBlocksPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminHomeBlocksPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminHomeBlocksContent />
+    </AdminRouteShell>
   );
 }

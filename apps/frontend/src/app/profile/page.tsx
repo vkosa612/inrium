@@ -1,10 +1,8 @@
-import ProfilePageClient from './ProfilePageClient';
+import type { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Профіль — INRIUM',
   robots: { index: false, follow: false },
 };
 
-export default function ProfilePage() {
-  return <ProfilePageClient />;
-}
+export { default } from './ProfilePage';

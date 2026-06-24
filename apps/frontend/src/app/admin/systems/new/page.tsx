@@ -1,25 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/context/AuthContext';
+import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import SystemForm from '@/components/admin/SystemForm';
 
-export default function AdminSystemNewPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (user.role !== 'ADMIN' && user.role !== 'EDITOR') router.replace('/');
-  }, [user, isLoading, router]);
-
-  if (isLoading || !user) return <><Header /><main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'var(--text-muted)' }}>Завантаження…</div></main></>;
-
+function AdminSystemNewContent() {
   return (
     <>
       <Header />
@@ -32,7 +19,8 @@ export default function AdminSystemNewPage() {
             <span style={{ color: 'var(--border)' }}>/</span>
             <span style={{ color: 'var(--text-dim)' }}>Нова система</span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 28 }}>Нова ігрова система</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>Нова ігрова система</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 28 }}>Заповніть опис ігрової системи</p>
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px' }}>
             <SystemForm />
           </div>
@@ -40,5 +28,13 @@ export default function AdminSystemNewPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function AdminSystemNewPage() {
+  return (
+    <AdminRouteShell requirement="ADMIN_OR_EDITOR">
+      <AdminSystemNewContent />
+    </AdminRouteShell>
   );
 }

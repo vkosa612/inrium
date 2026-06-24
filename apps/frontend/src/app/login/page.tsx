@@ -1,23 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiLogin } from '@/lib/api';
+import { safeNextPath } from '@/lib/auth-redirect';
 
-export default function LoginPage() {
+function LoginForm() {
   const { user, isLoading, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get('next') ?? searchParams.get('redirect'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
-    if (!isLoading && user) router.replace('/');
-  }, [user, isLoading, router]);
+    if (!isLoading && user) router.replace(nextPath);
+  }, [user, isLoading, router, nextPath]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,7 +28,7 @@ export default function LoginPage() {
     try {
       const result = await apiLogin(email, password);
       login(result);
-      router.push('/');
+      router.push(nextPath);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Помилка входу');
     } finally {
@@ -34,7 +36,13 @@ export default function LoginPage() {
     }
   }
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+        Завантаження…
+      </div>
+    );
+  }
 
   return (
     <div
@@ -125,6 +133,20 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+          Завантаження…
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
 
