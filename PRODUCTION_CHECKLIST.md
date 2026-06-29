@@ -75,6 +75,8 @@
 - [ ] Rate limit на auth endpoints
 - [ ] Stack traces не показуються користувачу (`NODE_ENV=production`)
 - [ ] Adminer **не** запущений на prod (`--profile tools` only local)
+- [ ] Access control audit пройдено — `docs/ACCESS_CONTROL_AUDIT.md`
+- [ ] IDOR fix: `GET /api/games?status=DRAFT` не leak чернеток
 - [ ] Security phase backlog: cookies-only refresh, CSRF, CAPTCHA, audit log
 
 ---
@@ -144,3 +146,4 @@ Invoke-WebRequest https://your-domain.ua/robots.txt -UseBasicParsing
 | Admin delete users | P3 |
 | Analytics dashboard | P3 |
 | Image resize/crop | P2 |
+| IDOR re-audit після нових endpoints | P1 |

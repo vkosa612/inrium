@@ -72,6 +72,14 @@ const PUBLIC_STATUSES: GameStatus[] = [
 
 const RECRUITMENT_STATUSES: GameStatus[] = [GameStatus.OPEN, GameStatus.FULL];
 
+/** Публічний список ігор — лише дозволені статуси; ігнорує DRAFT/CANCELLED з query. */
+function resolvePublicListStatus(status?: GameStatus): GameStatus | { in: GameStatus[] } {
+  if (status && PUBLIC_STATUSES.includes(status)) {
+    return status;
+  }
+  return { in: PUBLIC_STATUSES };
+}
+
 @Injectable()
 export class GamesService {
   constructor(
@@ -84,7 +92,7 @@ export class GamesService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.GameWhereInput = {
-      status: status ?? { in: PUBLIC_STATUSES },
+      status: resolvePublicListStatus(status),
       ...(gameSystemId && { gameSystemId }),
       ...(search && {
         OR: [
@@ -172,7 +180,7 @@ export class GamesService {
       },
     });
     if (!game || !PUBLIC_STATUSES.includes(game.status)) {
-      throw new NotFoundException(`Game "${slug}" not found`);
+      throw new NotFoundException('Гру не знайдено');
     }
     const { applications, ...rest } = game;
     return { ...rest, approvedCount: applications.length, applications };
@@ -180,7 +188,7 @@ export class GamesService {
 
   async create(dto: CreateGameDto, user: UserPublic) {
     if (user.role !== UserRole.GAME_MASTER && user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only Game Masters can create games');
+      throw new ForbiddenException('Лише майстри можуть створювати ігри');
     }
 
     const slug = dto.slug?.trim() || generateSlug(dto.title);
@@ -264,7 +272,7 @@ export class GamesService {
       throw new NotFoundException('Гра не відкрита для заявок');
     }
     if (game.masterId === user.id) {
-      throw new ConflictException('Cannot apply to your own game');
+      throw new ConflictException('Не можна подати заявку на власну гру');
     }
 
     const existing = await this.prisma.gameApplication.findUnique({
@@ -273,10 +281,10 @@ export class GamesService {
 
     if (existing) {
       if (existing.status === GameApplicationStatus.PENDING) {
-        throw new ConflictException('You already applied to this game');
+        throw new ConflictException('Ви вже подали заявку на цю гру');
       }
       if (existing.status === GameApplicationStatus.APPROVED) {
-        throw new ConflictException('You are already approved for this game');
+        throw new ConflictException('Вас уже схвалено для цієї гри');
       }
       if (
         existing.status === GameApplicationStatus.CANCELLED ||
@@ -289,7 +297,7 @@ export class GamesService {
           select: { id: true, status: true, message: true, createdAt: true },
         });
       }
-      throw new ConflictException('You already applied to this game');
+      throw new ConflictException('Ви вже подали заявку на цю гру');
     }
 
     try {
@@ -307,7 +315,7 @@ export class GamesService {
         },
       });
     } catch {
-      throw new ConflictException('You already applied to this game');
+      throw new ConflictException('Ви вже подали заявку на цю гру');
     }
   }
 
@@ -321,14 +329,14 @@ export class GamesService {
       where: { id: appId, gameId },
       include: { game: true },
     });
-    if (!app) throw new NotFoundException('Application not found');
+    if (!app) throw new NotFoundException('Заявку не знайдено');
 
     if (action === 'cancel') {
       if (app.userId !== user.id && user.role !== UserRole.ADMIN) {
-        throw new ForbiddenException('Cannot cancel this application');
+        throw new ForbiddenException('Ви не можете змінити цю заявку');
       }
       if (app.status !== GameApplicationStatus.PENDING) {
-        throw new ConflictException('Only pending applications can be cancelled');
+        throw new ConflictException('Скасувати можна лише заявку «Очікує рішення»');
       }
       return this.prisma.gameApplication.update({
         where: { id: appId },
@@ -338,7 +346,7 @@ export class GamesService {
     }
 
     if (app.game.masterId !== user.id && user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only the game master can approve or reject');
+      throw new ForbiddenException('Ви не можете керувати цією грою');
     }
 
     if (action === 'reject') {
@@ -357,7 +365,7 @@ export class GamesService {
         where: { id: appId, gameId },
         include: { game: true },
       });
-      if (!lockedApp) throw new NotFoundException('Application not found');
+      if (!lockedApp) throw new NotFoundException('Заявку не знайдено');
 
       if (lockedApp.status !== GameApplicationStatus.PENDING) {
         throw new ConflictException('Заявку можна схвалити лише у статусі «Очікує рішення».');
@@ -366,7 +374,7 @@ export class GamesService {
       await tx.$executeRaw`SELECT id FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
 
       const game = await tx.game.findUnique({ where: { id: gameId } });
-      if (!game) throw new NotFoundException('Game not found');
+      if (!game) throw new NotFoundException('Гру не знайдено');
 
       const approvedCount = await this.countApproved(tx, gameId);
       if (game.maxPlayers && approvedCount >= game.maxPlayers) {
@@ -398,10 +406,10 @@ export class GamesService {
       where: { id: appId, gameId },
       include: { game: true },
     });
-    if (!app) throw new NotFoundException('Application not found');
+    if (!app) throw new NotFoundException('Заявку не знайдено');
 
     if (app.game.masterId !== user.id && user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only the game master can remove players');
+      throw new ForbiddenException('Ви не можете керувати цією грою');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -409,7 +417,7 @@ export class GamesService {
         where: { id: appId, gameId },
         include: { game: true },
       });
-      if (!lockedApp) throw new NotFoundException('Application not found');
+      if (!lockedApp) throw new NotFoundException('Заявку не знайдено');
 
       if (lockedApp.status !== GameApplicationStatus.APPROVED) {
         throw new ConflictException('Можна виключити лише схваленого гравця.');
@@ -424,7 +432,7 @@ export class GamesService {
       });
 
       const game = await tx.game.findUnique({ where: { id: gameId } });
-      if (!game) throw new NotFoundException('Game not found');
+      if (!game) throw new NotFoundException('Гру не знайдено');
 
       const gameStatus = await this.syncRecruitmentStatus(tx, game);
       const approvedCount = await this.countApproved(tx, gameId);
@@ -497,9 +505,9 @@ export class GamesService {
         gameSystem: { select: { id: true, slug: true, title: true } },
       },
     });
-    if (!game) throw new NotFoundException('Game not found');
+    if (!game) throw new NotFoundException('Гру не знайдено');
     if (game.master.id !== user.id && user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Not allowed to view this game');
+      throw new ForbiddenException('Доступ заборонено');
     }
     const approvedCount = await this.prisma.gameApplication.count({
       where: { gameId: id, status: GameApplicationStatus.APPROVED },
@@ -592,9 +600,9 @@ export class GamesService {
 
   private async findOwnedOrAdmin(id: string, user: UserPublic) {
     const game = await this.prisma.game.findUnique({ where: { id } });
-    if (!game) throw new NotFoundException('Game not found');
+    if (!game) throw new NotFoundException('Гру не знайдено');
     if (game.masterId !== user.id && user.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Not allowed to modify this game');
+      throw new ForbiddenException('Ви не можете керувати цією грою');
     }
     return game;
   }

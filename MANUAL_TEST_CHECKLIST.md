@@ -117,7 +117,24 @@ Login: `admin@inrium.local`
 
 ---
 
-## 8. Негативні сценарії
+## 9. Access control / IDOR
+
+Потрібні 2 акаунти: PLAYER + GAME_MASTER (seed: `gm@inrium.local`).
+
+- [ ] `GET /api/games?status=DRAFT` — **не** повертає ігри зі status DRAFT
+- [ ] PLAYER: `GET /api/users` → 403
+- [ ] EDITOR: `PATCH /api/users/:id/role` → 403
+- [ ] GM A: `GET /api/games/by-id/<id_гри_GM_B>` → 403, повідомлення українською
+- [ ] GM A: `PATCH .../applications/:appId/approve` для гри GM B → 403
+- [ ] PLAYER A: cancel заявки PLAYER B → 403
+- [ ] `GET /api/users/:id` — немає поля `email`
+- [ ] `/my/games/<чужий-id>/edit` — frontend показує «Доступ заборонено» або помилку завантаження
+
+Деталі: `docs/ACCESS_CONTROL_AUDIT.md`
+
+---
+
+## 10. Негативні сценарії
 
 - [ ] `/admin/*` без auth → redirect/login
 - [ ] API без token на protected endpoint → 401

@@ -64,7 +64,7 @@ export class BookmarksService {
     } catch (err) {
       const code = (err as { code?: string })?.code;
       if (code === 'P2002') {
-        throw new ConflictException('Already bookmarked');
+        throw new ConflictException('Закладку вже додано');
       }
       throw err;
     }
@@ -75,10 +75,10 @@ export class BookmarksService {
       where: { id: bookmarkId, userId },
     });
     if (!bookmark) {
-      throw new NotFoundException('Bookmark not found');
+      throw new NotFoundException('Закладку не знайдено');
     }
     await this.prisma.bookmark.delete({ where: { id: bookmarkId } });
-    return { message: 'Bookmark removed' };
+    return { message: 'Закладку видалено' };
   }
 
   private async assertTargetExists(

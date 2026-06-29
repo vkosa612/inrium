@@ -28,6 +28,7 @@
 | SEO | ✅ | sitemap.xml, robots.txt, metadata |
 | Docker stack | ✅ | postgres + backend + frontend (+ adminer profile) |
 | Локалізація UI | ✅ | Українська для основних flows |
+| Access control (IDOR/BOLA) | ✅ | Аудит + fix public games list; див. `docs/ACCESS_CONTROL_AUDIT.md` |
 
 ## Відомі обмеження (не блокери MVP)
 
@@ -62,7 +63,25 @@
 | `README.md` | Швидкий старт, Docker, backup |
 | `MANUAL_TEST_CHECKLIST.md` | Ручні сценарії QA |
 | `PRODUCTION_CHECKLIST.md` | Pre-deploy production |
+| `docs/ACCESS_CONTROL_AUDIT.md` | IDOR/BOLA аудит і API smoke |
 | `.env.example` | Placeholder-и (без секретів) |
+
+## Access control / IDOR
+
+- Публічні ігри: лише OPEN/FULL/IN_PROGRESS/FINISHED (`resolvePublicListStatus`).
+- GM mutations: `findOwnedOrAdmin` + `masterId`.
+- Заявки: composite `{ appId, gameId }`; cancel — лише власник.
+- Bookmarks: filter `userId`.
+- Public profile: без email/secrets.
+- Деталі: `docs/ACCESS_CONTROL_AUDIT.md`.
+
+## Cleanup (access-control chunk)
+
+- Сміттєвих файлів (`del.json`, `test-*.json`, `*.log`) у repo **не знайдено**.
+- Build artifacts (`node_modules`, `.next`, `dist`) — у `.gitignore`, не видалялись з диска.
+- Мертвий код масово не видалявся — route wrappers Next.js залишені (потрібні для App Router).
+
+---
 
 ## Seed-акаунти (dev)
 
