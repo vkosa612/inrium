@@ -40,7 +40,7 @@ export class UploadsService {
     const mimeType = file.mimetype?.toLowerCase() ?? '';
     if (!ALLOWED_MIME.has(mimeType)) {
       throw new UnsupportedMediaTypeException(
-        'Allowed types: image/jpeg, image/png, image/webp',
+        'Дозволені лише JPG, PNG або WebP',
       );
     }
 
@@ -61,7 +61,7 @@ export class UploadsService {
     } catch (err) {
       const code = (err as { code?: string })?.code;
       if (code === 'FST_REQ_FILE_TOO_LARGE') {
-        throw new PayloadTooLargeException('Max file size is 5 MB');
+        throw new PayloadTooLargeException('Максимальний розмір файлу — 5 MB');
       }
       throw err;
     }
@@ -69,17 +69,17 @@ export class UploadsService {
     const { size } = statSync(absPath);
     if (size > MAX_BYTES) {
       unlinkSync(absPath);
-      throw new PayloadTooLargeException('Max file size is 5 MB');
+      throw new PayloadTooLargeException('Максимальний розмір файлу — 5 MB');
     }
     if (size === 0) {
       unlinkSync(absPath);
-      throw new BadRequestException('Empty file');
+      throw new BadRequestException('Порожній файл');
     }
 
     const header = await this.readFileHeader(absPath);
     if (!this.matchesMagic(header, mimeType)) {
       unlinkSync(absPath);
-      throw new UnsupportedMediaTypeException('File content does not match declared type');
+      throw new UnsupportedMediaTypeException('Вміст файлу не відповідає заявленому типу');
     }
 
     const urlPath = `/uploads/${relDir.replace(/\\/g, '/')}/${filename}`;

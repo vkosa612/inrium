@@ -15,18 +15,53 @@
 ## Швидкий старт (local dev)
 
 ```bash
-# 1. Скопіювати конфіг
+# 1. Скопіювати конфіг (НЕ комітити .env!)
 cp .env.example .env
 
-# 2. Запустити весь стек (frontend + backend + postgres)
+# 2. Release build (рекомендовано перед перевіркою)
+docker compose down --remove-orphans
+docker compose build --no-cache
+docker compose up -d --force-recreate
+
+# Або звичайний запуск:
 docker compose up --build -d
 
-# З Adminer для роботи з БД:
+# 3. Adminer для роботи з БД (опційно, тільки local):
 docker compose --profile tools up -d
 
-# 3. Першого разу — засіяти БД (міграції застосовуються автоматично)
+# 4. Seed (перший раз або після reset БД):
 docker compose exec backend sh -c "cd /app/apps/backend && node_modules/.bin/ts-node -P prisma/tsconfig.seed.json prisma/seed.ts"
 ```
+
+### Логи та статус
+
+```bash
+docker compose ps
+docker compose logs backend --tail=120
+docker compose logs frontend --tail=120
+```
+
+### Backup проєкту
+
+- **База:** `docker compose exec postgres pg_dump -U inrium inrium > backup.sql`
+- **Uploads:** скопіювати папку `./uploads` на хост
+- **Конфіг:** `.env` зберігати окремо (не в git)
+
+### SMTP demo (локально)
+
+1. У `.env` вказати Gmail SMTP (див. `.env.example` — лише placeholder-и в repo).
+2. Якщо SMTP не налаштовано — посилання verify/reset з’являються в logs backend з префіксом `[dev-only]`.
+3. У production без SMTP backend логує попередження при старті.
+
+### Документація RC
+
+| Файл | Опис |
+|------|------|
+| `PROJECT_STATUS.md` | Статус MVP, обмеження |
+| `MANUAL_TEST_CHECKLIST.md` | Ручні сценарії QA |
+| `PRODUCTION_CHECKLIST.md` | Pre-deploy production |
+
+> **`.env` ніколи не комітити.** Перевірка: `git check-ignore -v .env`
 
 ## Сервіси після запуску
 
@@ -249,12 +284,16 @@ inrium/
 - [x] Static pages `/about`, `/contacts`, `/advertise`
 - [x] GitHub Actions CI (`.github/workflows/ci.yml`)
 - [x] Nginx example (`docker/nginx/nginx.conf.example`)
-- [x] Production checklist (`PRODUCTION_CHECKLIST.md`)
+- [x] SMTP integration for email verify / password reset (Gmail demo + dev logs)
+- [x] Dynamic homepage from HomePageBlock config
+- [x] MVP polish: українська локалізація, footer, media, sitemap
+- [x] Release Candidate docs (`PROJECT_STATUS.md`, `MANUAL_TEST_CHECKLIST.md`)
 
-### 🔜 Наступні етапи
+### 🔜 Наступні етапи (після RC)
 
-- [ ] SMTP integration for email verify / password reset
+- [ ] Production deploy (див. `PRODUCTION_CHECKLIST.md`)
+- [ ] Security phase (cookies, CSRF, CAPTCHA, email enforcement policy)
+- [ ] Object storage для uploads (S3/MinIO)
 - [ ] Image cropper / resize при upload
 - [ ] Redis для refresh tokens та rate limiting
-- [ ] Dynamic homepage from HomePageBlock config
 - [ ] Error tracking (Sentry або Glitchtip)

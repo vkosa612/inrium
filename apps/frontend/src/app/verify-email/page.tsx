@@ -25,7 +25,7 @@ function VerifyEmailContent() {
       })
       .catch((err: unknown) => {
         setStatus('error');
-        setMessage(err instanceof Error ? err.message : 'Не вдалося підтвердити email.');
+        setMessage(err instanceof Error ? err.message : 'Не вдалося підтвердити пошту.');
       });
   }, [token]);
 

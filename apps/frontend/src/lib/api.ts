@@ -368,7 +368,7 @@ export async function apiUploadImage(file: File): Promise<UploadImageResult> {
   }
   if (!res.ok || !body.success) {
     const err = body as ApiError;
-    throw new Error(err.message ?? `Upload failed (${res.status})`);
+    throw new Error(err.message ?? `Не вдалося завантажити (${res.status})`);
   }
 
   return (body as ApiResponse<UploadImageResult>).data;
@@ -400,7 +400,7 @@ export async function apiUploadGameCover(gameId: string, file: File): Promise<Up
   if (res.status === 415) throw new Error('Дозволені лише JPG, PNG або WebP');
   if (!res.ok || !body.success) {
     const err = body as ApiError;
-    throw new Error(err.message ?? `Upload failed (${res.status})`);
+    throw new Error(err.message ?? `Не вдалося завантажити (${res.status})`);
   }
 
   return (body as ApiResponse<{ upload: UploadImageResult }>).data.upload;
@@ -505,7 +505,7 @@ export async function apiDeleteContent(id: string): Promise<void> {
   });
   if (!res.ok && res.status !== 204) {
     const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
+    throw new Error((body as ApiError).message ?? `Не вдалося видалити (${res.status})`);
   }
 }
 
@@ -590,7 +590,7 @@ export async function apiDeleteSystem(id: string): Promise<void> {
   });
   if (!res.ok && res.status !== 204) {
     const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
+    throw new Error((body as ApiError).message ?? `Не вдалося видалити (${res.status})`);
   }
 }
 
@@ -666,7 +666,7 @@ export async function apiDeleteKit(id: string): Promise<void> {
   });
   if (!res.ok && res.status !== 204) {
     const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error((body as ApiError).message ?? `Delete failed: ${res.status}`);
+    throw new Error((body as ApiError).message ?? `Не вдалося видалити (${res.status})`);
   }
 }
 
@@ -917,7 +917,7 @@ export async function apiDeleteGame(id: string): Promise<void> {
   });
   if (!res.ok && res.status !== 204) {
     const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error(body.message ?? `Delete failed: ${res.status}`);
+    throw new Error(body.message ?? `Не вдалося видалити (${res.status})`);
   }
 }
 
@@ -1051,6 +1051,6 @@ export async function apiDeleteCommunity(id: string): Promise<void> {
   });
   if (!res.ok && res.status !== 204) {
     const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error(body.message ?? `Delete failed: ${res.status}`);
+    throw new Error(body.message ?? `Не вдалося видалити (${res.status})`);
   }
 }

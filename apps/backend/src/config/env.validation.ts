@@ -1,5 +1,23 @@
 import * as Joi from 'joi';
 
+const DEV_JWT_PLACEHOLDERS = [
+  'change_me_access_secret_min_32_chars',
+  'change_me_refresh_secret_min_32_chars',
+];
+
+function rejectDevJwtInProduction(value: string, helpers: Joi.CustomHelpers) {
+  const nodeEnv = helpers.state.ancestors[0]?.NODE_ENV as string | undefined;
+  if (nodeEnv === 'production') {
+    if (value.length < 32) {
+      return helpers.error('string.min', { limit: 32 });
+    }
+    if (DEV_JWT_PLACEHOLDERS.includes(value)) {
+      return helpers.error('any.invalid');
+    }
+  }
+  return value;
+}
+
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid('development', 'production', 'test')
@@ -21,14 +39,24 @@ export const envValidationSchema = Joi.object({
   }),
 
   // JWT
-  JWT_ACCESS_SECRET: Joi.string().min(16).required().messages({
-    'any.required': 'JWT_ACCESS_SECRET is required',
-    'string.min': 'JWT_ACCESS_SECRET must be at least 16 characters',
-  }),
-  JWT_REFRESH_SECRET: Joi.string().min(16).required().messages({
-    'any.required': 'JWT_REFRESH_SECRET is required',
-    'string.min': 'JWT_REFRESH_SECRET must be at least 16 characters',
-  }),
+  JWT_ACCESS_SECRET: Joi.string()
+    .min(16)
+    .required()
+    .custom(rejectDevJwtInProduction)
+    .messages({
+      'any.required': 'JWT_ACCESS_SECRET is required',
+      'string.min': 'JWT_ACCESS_SECRET must be at least 16 characters (32 in production)',
+      'any.invalid': 'JWT_ACCESS_SECRET must not use placeholder values in production',
+    }),
+  JWT_REFRESH_SECRET: Joi.string()
+    .min(16)
+    .required()
+    .custom(rejectDevJwtInProduction)
+    .messages({
+      'any.required': 'JWT_REFRESH_SECRET is required',
+      'string.min': 'JWT_REFRESH_SECRET must be at least 16 characters (32 in production)',
+      'any.invalid': 'JWT_REFRESH_SECRET must not use placeholder values in production',
+    }),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
@@ -38,14 +66,23 @@ export const envValidationSchema = Joi.object({
 
   // Feature flags
   SWAGGER_ENABLED: Joi.string().valid('true', 'false').default('true'),
+  REQUIRE_EMAIL_VERIFICATION: Joi.string().valid('true', 'false').default('false'),
 
   // Local file uploads (cover images)
   UPLOADS_DIR: Joi.string().default('uploads'),
 
-  // Public site URL for email links (defaults to first CORS origin)
-  SITE_URL: Joi.string().uri().optional(),
+  // Public site URL for email links
+  SITE_URL: Joi.string()
+    .uri()
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.required().messages({
+        'any.required': 'SITE_URL is required in production (e.g. https://inrium.ua)',
+      }),
+      otherwise: Joi.optional(),
+    }),
 
-  // SMTP (optional — dev falls back to console log when unset)
+  // SMTP (optional in dev — links logged when unset or send fails)
   SMTP_HOST: Joi.string().optional().allow(''),
   SMTP_PORT: Joi.number().default(587),
   SMTP_SECURE: Joi.string().valid('true', 'false').default('false'),

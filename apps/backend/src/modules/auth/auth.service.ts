@@ -182,6 +182,14 @@ export class AuthService {
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) throw INVALID;
 
+    const requireVerified =
+      this.config.get<string>('REQUIRE_EMAIL_VERIFICATION', 'false') === 'true';
+    if (requireVerified && !user.emailVerified) {
+      throw new UnauthorizedException(
+        'Підтвердіть електронну пошту перед входом. Перевірте лист або запросіть нове посилання.',
+      );
+    }
+
     // Strip passwordHash before returning
     const { passwordHash: _pw, ...userPublic } = user;
 

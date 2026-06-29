@@ -13,7 +13,7 @@ export default function ContactsPage() {
     <StaticInfoPage title="Контакти">
       <p>Маєте питання щодо платформи, контенту або співпраці?</p>
       <ul style={{ marginTop: 16, paddingLeft: 20 }}>
-        <li>Email: <a href="mailto:hello@inrium.local" style={{ color: '#f7971f' }}>hello@inrium.local</a></li>
+        <li>Електронна пошта: <a href="mailto:hello@inrium.local" style={{ color: '#f7971f' }}>hello@inrium.local</a></li>
         <li>Telegram: @inrium_support</li>
       </ul>
       <p style={{ marginTop: 16, fontSize: 13 }}>

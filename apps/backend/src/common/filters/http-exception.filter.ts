@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import type { ApiErrorResponse } from '../types/api-response.type';
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 // ── Prisma error detection ─────────────────────────────────────────────────
 
 function isPrismaError(err: unknown): boolean {
@@ -30,15 +34,19 @@ function mapPrismaError(err: unknown): PrismaErrorResult {
 
   switch (code) {
     case 'P2002':
-      return { statusCode: HttpStatus.CONFLICT, message: 'Resource already exists', error: 'Conflict' };
+      return { statusCode: HttpStatus.CONFLICT, message: 'Запис уже існує', error: 'Conflict' };
     case 'P2025':
-      return { statusCode: HttpStatus.NOT_FOUND, message: 'Resource not found', error: 'Not Found' };
+      return { statusCode: HttpStatus.NOT_FOUND, message: 'Запис не знайдено', error: 'Not Found' };
     case 'P2003':
-      return { statusCode: HttpStatus.BAD_REQUEST, message: 'Related resource not found', error: 'Bad Request' };
+      return { statusCode: HttpStatus.BAD_REQUEST, message: "Пов'язаний запис не знайдено", error: 'Bad Request' };
     case 'P2000':
-      return { statusCode: HttpStatus.BAD_REQUEST, message: 'Input value too long', error: 'Bad Request' };
+      return { statusCode: HttpStatus.BAD_REQUEST, message: 'Значення занадто довге', error: 'Bad Request' };
     default:
-      return { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Database error', error: 'Internal Server Error' };
+      return {
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: isProduction() ? 'Внутрішня помилка сервера' : 'Помилка бази даних',
+        error: 'Internal Server Error',
+      };
   }
 }
 
@@ -52,7 +60,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<{ url: string }>();
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | string[] = 'Internal server error';
+    let message: string | string[] = isProduction()
+      ? 'Внутрішня помилка сервера'
+      : 'Internal server error';
     let error = 'Internal Server Error';
 
     if (exception instanceof HttpException) {
@@ -66,10 +76,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = (obj.message as string | string[]) ?? message;
         error = (obj.error as string) ?? HttpStatus[statusCode] ?? 'Error';
       }
+
+      if (isProduction() && statusCode >= 500) {
+        message = 'Внутрішня помилка сервера';
+      }
     } else if (isPrismaError(exception)) {
       ({ statusCode, message, error } = mapPrismaError(exception));
     } else {
       console.error('[INRIUM] Unhandled exception:', exception);
+      if (isProduction()) {
+        message = 'Внутрішня помилка сервера';
+      }
     }
 
     const body: ApiErrorResponse = {

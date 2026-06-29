@@ -1,14 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
 
   constructor(private readonly config: ConfigService) {}
+
+  onModuleInit(): void {
+    if (this.isProduction() && !this.isConfigured()) {
+      this.logger.warn(
+        'SMTP не налаштовано (SMTP_HOST порожній). Листи підтвердження/скидання пароля не надсилатимуться.',
+      );
+    }
+  }
 
   isConfigured(): boolean {
     const host = this.config.get<string>('SMTP_HOST');
