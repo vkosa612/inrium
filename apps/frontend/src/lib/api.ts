@@ -767,6 +767,8 @@ export interface SitemapData {
   help: Array<{ slug: string; updatedAt: string }>;
   systems: Array<{ slug: string; updatedAt: string }>;
   kits: Array<{ slug: string; updatedAt: string }>;
+  games: Array<{ slug: string; updatedAt: string }>;
+  communities: Array<{ slug: string; updatedAt: string }>;
 }
 
 export async function apiGetSitemap(): Promise<SitemapData> {

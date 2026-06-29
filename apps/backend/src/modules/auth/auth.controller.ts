@@ -126,7 +126,7 @@ export class AuthController {
       await this.authService.logout(token);
     }
     this.clearRefreshCookie(reply);
-    return { message: 'Logged out' };
+    return { message: 'Ви вийшли з акаунта' };
   }
 
   // ── Me ───────────────────────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ export class AuthController {
     const cookieToken = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
     const token = cookieToken ?? bodyToken;
     if (required && !token) {
-      throw new BadRequestException('Refresh token is required');
+      throw new BadRequestException('Потрібен токен оновлення');
     }
     return token ?? '';
   }

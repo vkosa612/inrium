@@ -99,7 +99,25 @@ function AdminCommunitiesContent() {
           {loading && <p style={{ color: 'var(--text-muted)' }}>Завантаження спільнот…</p>}
 
           {!loading && !error && items.length === 0 && (
-            <p style={{ color: 'var(--text-muted)' }}>Спільнот поки немає.</p>
+            <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+              <p style={{ margin: '0 0 16px', fontSize: 15 }}>Спільнот поки немає.</p>
+              <Link
+                href="/admin/communities/new"
+                style={{
+                  display: 'inline-block',
+                  padding: '10px 20px',
+                  background: '#f7971f',
+                  color: '#111',
+                  fontWeight: 700,
+                  borderRadius: 8,
+                  textDecoration: 'none',
+                  fontSize: 14,
+                }}
+              >
+                Створити першу спільноту
+              </Link>
+            </div>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

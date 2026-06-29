@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { apiFetchAuth } from '@/lib/api';
 import { formatApiError } from '@/lib/formatApiError';
+import { homeBlockTypeLabel } from '@/lib/labels';
 
 interface HomeBlock {
   id: string;
@@ -78,7 +79,13 @@ function AdminHomeBlocksContent() {
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Завантаження блоків…</p>
         ) : blocks.length === 0 ? (
-          <p style={{ color: 'var(--text-dim)' }}>Блоків не знайдено.</p>
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
+            <p style={{ margin: 0, fontSize: 15 }}>Блоків головної сторінки не знайдено.</p>
+            <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-dim)' }}>
+              Блоки створюються під час ініціалізації бази даних.
+            </p>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {blocks.map((block) => (
@@ -98,7 +105,7 @@ function AdminHomeBlocksContent() {
                 <div>
                   <div style={{ fontWeight: 700, color: 'var(--text)' }}>{block.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {block.type} · позиція {block.position}
+                    {homeBlockTypeLabel(block.type)} · позиція {block.position}
                     {block.subtitle ? ` · ${block.subtitle}` : ''}
                   </div>
                 </div>

@@ -1,29 +1,22 @@
 'use client';
 
 const FOOTER_LINKS = {
+  Платформа: [
+    { label: 'Головна', href: '/' },
+    { label: 'Ігри', href: '/games' },
+    { label: 'Спільноти', href: '/communities' },
+  ],
   Матеріали: [
     { label: 'Новини', href: '/news' },
     { label: 'Статті', href: '/articles' },
-    { label: 'Огляди', href: '/reviews' },
+    { label: 'Системи', href: '/systems' },
     { label: 'Набори', href: '/kits' },
+    { label: 'Довідка', href: '/help' },
   ],
-  Системи: [
-    { label: 'D&D 5e', href: '/systems/dnd-5e' },
-    { label: 'Pathfinder 2e', href: '/systems/pathfinder-2e' },
-    { label: 'Call of Cthulhu', href: '/systems/coc' },
-    { label: 'Усі системи', href: '/systems' },
-  ],
-  Спільнота: [
-    { label: 'Знайти гру', href: '/games' },
-    { label: 'Майстри', href: '/masters' },
-    { label: 'Спільноти', href: '/communities' },
-    { label: 'Події', href: '/events' },
-  ],
-  Допомога: [
-    { label: 'Для новачків', href: '/help/start' },
-    { label: 'FAQ', href: '/help/faq' },
+  'Про нас': [
+    { label: 'Про INRIUM', href: '/about' },
     { label: 'Контакти', href: '/contacts' },
-    { label: 'Про нас', href: '/about' },
+    { label: 'Реклама', href: '/advertise' },
   ],
 };
 
@@ -40,7 +33,7 @@ export default function Footer() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'auto repeat(4, 1fr)',
+            gridTemplateColumns: 'auto repeat(3, 1fr)',
             gap: 40,
             marginBottom: 40,
           }}
@@ -124,10 +117,6 @@ export default function Footer() {
           <span style={{ fontSize: 12, color: '#475569' }}>
             © {new Date().getFullYear()} INRIUM. Усі права захищено.
           </span>
-          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#475569' }}>
-            <a href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>Приватність</a>
-            <a href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Умови</a>
-          </div>
         </div>
       </div>
     </footer>

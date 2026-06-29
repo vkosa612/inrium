@@ -90,12 +90,12 @@ function LoginForm() {
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Field label="Email">
+          <Field label="Електронна пошта">
             <Input
               type="email"
               value={email}
               onChange={setEmail}
-              placeholder="your@email.com"
+              placeholder="name@example.com"
               hasError={!!error}
               required
             />

@@ -7,12 +7,13 @@ import Footer from '@/components/Footer';
 import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiAdminUpdateUserRole, apiGetAdminUsers, type AdminUser, type AuthUser } from '@/lib/api';
+import { roleLabel, userStatusLabel } from '@/lib/labels';
 
 const ROLE_LABEL: Record<string, string> = {
   PLAYER: 'Гравець',
   GAME_MASTER: 'Майстер',
   EDITOR: 'Редактор',
-  ADMIN: 'Адмін',
+  ADMIN: 'Адміністратор',
 };
 
 const ASSIGNABLE_ROLES: AuthUser['role'][] = ['PLAYER', 'GAME_MASTER', 'EDITOR', 'ADMIN'];
@@ -186,7 +187,7 @@ function AdminUsersContent() {
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{u.email}</div>
                   </div>
                   <span style={{ fontSize: 12, color: u.status === 'ACTIVE' ? '#10b981' : '#ef4444' }}>
-                    {u.status}
+                    {userStatusLabel(u.status)}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(u.createdAt)}</span>
                   <select

@@ -144,8 +144,9 @@ export class HomeService {
 
   async getSitemap() {
     const PUBLISHED = ContentStatus.PUBLISHED;
+    const PUBLIC_GAME_STATUSES = ['OPEN', 'FULL', 'IN_PROGRESS', 'FINISHED'] as const;
 
-    const [contentItems, systems, kits] = await Promise.all([
+    const [contentItems, systems, kits, games, communities] = await Promise.all([
       this.prisma.contentItem.findMany({
         where: { status: PUBLISHED },
         select: { slug: true, type: true, updatedAt: true },
@@ -161,6 +162,16 @@ export class HomeService {
         select: { slug: true, updatedAt: true },
         orderBy: { updatedAt: 'desc' },
       }),
+      this.prisma.game.findMany({
+        where: { status: { in: [...PUBLIC_GAME_STATUSES] } },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.community.findMany({
+        where: { isPublished: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
     ]);
 
     return {
@@ -172,6 +183,8 @@ export class HomeService {
         .map((i) => ({ slug: i.slug, updatedAt: i.updatedAt.toISOString() })),
       systems: systems.map((s) => ({ slug: s.slug, updatedAt: s.updatedAt.toISOString() })),
       kits: kits.map((k) => ({ slug: k.slug, updatedAt: k.updatedAt.toISOString() })),
+      games: games.map((g) => ({ slug: g.slug, updatedAt: g.updatedAt.toISOString() })),
+      communities: communities.map((c) => ({ slug: c.slug, updatedAt: c.updatedAt.toISOString() })),
     };
   }
 

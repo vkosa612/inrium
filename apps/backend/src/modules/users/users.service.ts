@@ -48,13 +48,13 @@ export class UsersService {
     if (dto.avatarUrl !== undefined) {
       const url = dto.avatarUrl.trim();
       if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/uploads/')) {
-        throw new BadRequestException('avatarUrl must be http(s) URL or /uploads/ path');
+        throw new BadRequestException('Аватар має бути посиланням http(s) або шляхом /uploads/');
       }
       data.avatarUrl = url || null;
     }
 
     if (Object.keys(data).length === 0) {
-      throw new BadRequestException('No fields to update');
+      throw new BadRequestException('Немає полів для оновлення');
     }
 
     return this.prisma.user.update({
@@ -66,18 +66,18 @@ export class UsersService {
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<{ message: string }> {
     if (dto.currentPassword === dto.newPassword) {
-      throw new BadRequestException('New password must differ from current password');
+      throw new BadRequestException('Новий пароль має відрізнятися від поточного');
     }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { passwordHash: true },
     });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Користувача не знайдено');
 
     const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!valid) {
-      throw new UnauthorizedException('Current password is incorrect');
+      throw new UnauthorizedException('Невірний поточний пароль');
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
@@ -93,7 +93,7 @@ export class UsersService {
       }),
     ]);
 
-    return { message: 'Password changed. Please sign in again.' };
+    return { message: 'Пароль змінено. Увійдіть знову.' };
   }
 
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<{ message: string }> {
@@ -134,7 +134,7 @@ export class UsersService {
       where: { id, status: UserStatus.ACTIVE },
       select: PUBLIC_PROFILE_SELECT,
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Користувача не знайдено');
     return user;
   }
 
@@ -170,7 +170,7 @@ export class UsersService {
 
   async adminUpdateRole(userId: string, role: UserRole): Promise<UserPublic> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Користувача не знайдено');
 
     return this.prisma.user.update({
       where: { id: userId },

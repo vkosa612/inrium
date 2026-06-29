@@ -2,16 +2,10 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetPublicUser } from '@/lib/api';
+import { apiGetPublicUser, resolveMediaUrl } from '@/lib/api';
+import { roleLabel } from '@/lib/labels';
 
 export const dynamic = 'force-dynamic';
-
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: 'Адміністратор',
-  EDITOR: 'Редактор',
-  GAME_MASTER: 'Майстер гри',
-  PLAYER: 'Гравець',
-};
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -37,6 +31,8 @@ export default async function PublicUserPage({ params }: Props) {
     notFound();
   }
 
+  const avatarSrc = resolveMediaUrl(user.avatarUrl);
+
   return (
     <>
       <Header />
@@ -57,16 +53,16 @@ export default async function PublicUserPage({ params }: Props) {
               flexShrink: 0,
             }}
           >
-            {user.avatarUrl ? (
+            {avatarSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={avatarSrc} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
               user.displayName.charAt(0).toUpperCase()
             )}
           </div>
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>{user.displayName}</h1>
-            <p style={{ margin: 0, color: '#f7971f', fontSize: 14 }}>{ROLE_LABEL[user.role] ?? user.role}</p>
+            <p style={{ margin: 0, color: '#f7971f', fontSize: 14 }}>{roleLabel(user.role)}</p>
           </div>
         </div>
         {user.bio && (

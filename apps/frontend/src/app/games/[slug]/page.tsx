@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GameApplyButton from '@/components/GameApplyButton';
 import MarkdownContent from '@/components/MarkdownContent';
-import { apiGetGameBySlug } from '@/lib/api';
+import { apiGetGameBySlug, resolveMediaUrl } from '@/lib/api';
 import { recruitmentStatusLabel } from '@/lib/game-labels';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +52,8 @@ export default async function GameDetailPage({ params }: Props) {
     notFound();
   }
 
+  const coverSrc = resolveMediaUrl(game.coverImageUrl);
+
   return (
     <>
       <Header />
@@ -59,6 +61,23 @@ export default async function GameDetailPage({ params }: Props) {
         <Link href="/games" style={{ color: '#f7971f', fontSize: 13, textDecoration: 'none' }}>
           ← Усі ігри
         </Link>
+
+        {coverSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverSrc}
+            alt={game.title}
+            style={{
+              width: '100%',
+              maxHeight: 320,
+              objectFit: 'cover',
+              borderRadius: 12,
+              marginTop: 16,
+              marginBottom: 8,
+              border: '1px solid var(--border)',
+            }}
+          />
+        )}
 
         <h1 style={{ fontSize: 32, fontWeight: 800, margin: '16px 0 8px' }}>{game.title}</h1>
         <p style={{ color: '#10b981', fontSize: 14, marginBottom: 24 }}>

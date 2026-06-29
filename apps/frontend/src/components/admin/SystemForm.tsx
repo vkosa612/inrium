@@ -98,7 +98,7 @@ export default function SystemForm({ initial }: SystemFormProps) {
         <input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Назва ігрової системи" required />
       </div>
       <div>
-        <label style={labelStyle}>Slug</label>
+        <label style={labelStyle}>URL-ідентифікатор</label>
         <input style={inputStyle} value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="auto-generated" />
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>URL: /systems/{slug || '…'}</p>
       </div>

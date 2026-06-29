@@ -84,7 +84,7 @@ function CommunityFormInner({ initial }: Props) {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-dim)', marginBottom: 6 }}>
-              Slug
+              URL-ідентифікатор
             </label>
             <input style={inputStyle} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto-from-name" />
           </div>

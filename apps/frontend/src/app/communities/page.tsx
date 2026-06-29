@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaginationWrapper from '@/components/PaginationWrapper';
-import { apiGetCommunities, type Community } from '@/lib/api';
+import { apiGetCommunities, resolveMediaUrl, type Community } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,22 +43,50 @@ export default async function CommunitiesPage({ searchParams }: Props) {
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 80px' }}>
         <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Спільноти</h1>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {items.map((c) => (
+          {items.map((c) => {
+            const coverSrc = resolveMediaUrl(c.coverImageUrl);
+            return (
             <Link key={c.id} href={`/communities/${c.slug}`} style={{ textDecoration: 'none' }}>
               <article
                 className="card-hover"
                 style={{
-                  padding: 24,
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border)',
                   borderRadius: 12,
+                  overflow: 'hidden',
                 }}
               >
+                {coverSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={coverSrc}
+                    alt=""
+                    style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: 80,
+                      background: 'linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(16,185,129,0.08) 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 28,
+                    }}
+                    aria-hidden
+                  >
+                    👥
+                  </div>
+                )}
+                <div style={{ padding: 24 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>{c.name}</h2>
                 <p className="line-clamp-2" style={{ margin: 0, fontSize: 14, color: 'var(--text-dim)' }}>{c.description}</p>
+                </div>
               </article>
             </Link>
-          ))}
+            );
+          })}
         </div>
         {items.length > 0 && (
           <div style={{ marginTop: 32 }}>

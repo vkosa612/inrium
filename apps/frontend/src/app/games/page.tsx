@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaginationWrapper from '@/components/PaginationWrapper';
-import { apiGetGames, type GameListItem } from '@/lib/api';
+import { apiGetGames, resolveMediaUrl, type GameListItem } from '@/lib/api';
 import { formatApprovedPlayerNames, recruitmentStatusLabel } from '@/lib/game-labels';
 
 export const dynamic = 'force-dynamic';
@@ -35,6 +35,7 @@ function formatDate(d: string | null) {
 
 function GameCard({ game }: { game: GameListItem }) {
   const playersLine = formatApprovedPlayerNames(game.approvedPlayers ?? []);
+  const coverSrc = resolveMediaUrl(game.coverImageUrl);
   return (
     <Link href={`/games/${game.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <article
@@ -43,13 +44,36 @@ function GameCard({ game }: { game: GameListItem }) {
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: 14,
-          padding: 24,
+          overflow: 'hidden',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
         }}
       >
+        {coverSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverSrc}
+            alt=""
+            style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: 100,
+              background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(247,151,31,0.08) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 32,
+            }}
+            aria-hidden
+          >
+            🎲
+          </div>
+        )}
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <span
             style={{
@@ -83,6 +107,7 @@ function GameCard({ game }: { game: GameListItem }) {
               👥 {playersLine}
             </div>
           )}
+        </div>
         </div>
       </article>
     </Link>

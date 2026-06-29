@@ -12,7 +12,7 @@ export class ChangePasswordDto {
   @MinLength(8)
   @MaxLength(64)
   @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
-    message: 'Password must contain at least one letter and one digit',
+    message: 'Пароль має містити щонайменше одну літеру та одну цифру',
   })
   newPassword!: string;
 }

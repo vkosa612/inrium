@@ -113,7 +113,7 @@ export default function GameForm({ initial }: GameFormProps) {
         <input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} required minLength={3} maxLength={200} />
       </div>
       <div>
-        <label style={labelStyle}>Slug</label>
+        <label style={labelStyle}>URL-ідентифікатор</label>
         <input
           style={inputStyle}
           value={slug}

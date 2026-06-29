@@ -10,7 +10,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/articles`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE_URL}/systems`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE_URL}/kits`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${BASE_URL}/games`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${BASE_URL}/communities`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE_URL}/help`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/about`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/contacts`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/advertise`, changeFrequency: 'monthly', priority: 0.4 },
   ];
 
   try {
@@ -44,7 +49,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticPages, ...contentUrls, ...helpUrls, ...systemUrls, ...kitUrls];
+    const gameUrls: MetadataRoute.Sitemap = (data.games ?? []).map((g) => ({
+      url: `${BASE_URL}/games/${g.slug}`,
+      lastModified: new Date(g.updatedAt),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    }));
+
+    const communityUrls: MetadataRoute.Sitemap = (data.communities ?? []).map((c) => ({
+      url: `${BASE_URL}/communities/${c.slug}`,
+      lastModified: new Date(c.updatedAt),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    }));
+
+    return [
+      ...staticPages,
+      ...contentUrls,
+      ...helpUrls,
+      ...systemUrls,
+      ...kitUrls,
+      ...gameUrls,
+      ...communityUrls,
+    ];
   } catch {
     return staticPages;
   }

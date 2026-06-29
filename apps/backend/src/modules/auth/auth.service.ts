@@ -87,7 +87,7 @@ export class AuthService {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException('Недійсний або прострочений токен оновлення');
     }
   }
 
@@ -141,7 +141,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException('Email is already registered');
+      throw new ConflictException('Користувач з такою поштою вже існує');
     }
 
     const verificationToken = randomUUID();
@@ -174,7 +174,7 @@ export class AuthService {
     });
 
     // Generic message — do not reveal whether email exists
-    const INVALID = new UnauthorizedException('Invalid email or password');
+    const INVALID = new UnauthorizedException('Невірна електронна пошта або пароль');
 
     if (!user) throw INVALID;
     if (user.status !== UserStatus.ACTIVE) throw INVALID;
@@ -198,7 +198,7 @@ export class AuthService {
     });
 
     if (!session || session.revokedAt || session.expiresAt < new Date()) {
-      throw new UnauthorizedException('Session expired or revoked');
+      throw new UnauthorizedException('Сесію завершено або відкликано');
     }
 
     // Verify stored hash matches incoming token
@@ -208,11 +208,11 @@ export class AuthService {
         where: { id: session.id },
         data: { revokedAt: new Date() },
       });
-      throw new UnauthorizedException('Refresh token already used');
+      throw new UnauthorizedException('Токен оновлення вже використано');
     }
 
     if (session.user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('Account is inactive');
+      throw new UnauthorizedException('Обліковий запис неактивний');
     }
 
     // Rotation: revoke old session, issue new one
@@ -261,7 +261,7 @@ export class AuthService {
       where: { id: userId },
       select: USER_SELECT,
     });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Користувача не знайдено');
     return user;
   }
 
@@ -272,7 +272,7 @@ export class AuthService {
         emailVerificationExpiresAt: { gt: new Date() },
       },
     });
-    if (!user) throw new UnauthorizedException('Invalid or expired verification token');
+    if (!user) throw new UnauthorizedException('Посилання для підтвердження пошти прострочене або недійсне');
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -282,13 +282,13 @@ export class AuthService {
         emailVerificationExpiresAt: null,
       },
     });
-    return { message: 'Email verified successfully' };
+    return { message: 'Пошту успішно підтверджено.' };
   }
 
   async requestPasswordReset(email: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return { message: 'If the email exists, a reset link was sent' };
+      return { message: 'Якщо такий email існує, ми надіслали посилання для скидання пароля.' };
     }
 
     const token = randomUUID();
@@ -302,7 +302,7 @@ export class AuthService {
 
     await this.email.sendPasswordResetEmail(email, token);
 
-    return { message: 'If the email exists, a reset link was sent' };
+    return { message: 'Якщо такий email існує, ми надіслали посилання для скидання пароля.' };
   }
 
   async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
@@ -312,7 +312,7 @@ export class AuthService {
         passwordResetExpiresAt: { gt: new Date() },
       },
     });
-    if (!user) throw new UnauthorizedException('Invalid or expired reset token');
+    if (!user) throw new UnauthorizedException('Посилання для скидання пароля прострочене або недійсне');
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.prisma.$transaction([
@@ -330,6 +330,6 @@ export class AuthService {
       }),
     ]);
 
-    return { message: 'Password reset successful. Please sign in.' };
+    return { message: 'Пароль змінено. Увійдіть знову.' };
   }
 }

@@ -114,13 +114,13 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Email</label>
+            <label style={labelStyle}>Електронна пошта</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="your@email.com"
+              placeholder="name@example.com"
               style={inputStyle}
               onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
               onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}

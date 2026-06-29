@@ -99,7 +99,7 @@ export default function KitForm({ initial }: KitFormProps) {
         <input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Назва набору" required />
       </div>
       <div>
-        <label style={labelStyle}>Slug</label>
+        <label style={labelStyle}>URL-ідентифікатор</label>
         <input style={inputStyle} value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="auto-generated" />
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>URL: /kits/{slug || '…'}</p>
       </div>

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetCommunityBySlug } from '@/lib/api';
+import { apiGetCommunityBySlug, resolveMediaUrl } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,12 +31,51 @@ export default async function CommunityDetailPage({ params }: Props) {
     notFound();
   }
 
+  const coverSrc = resolveMediaUrl(community.coverImageUrl);
+
   return (
     <>
       <Header />
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px 80px' }}>
         <Link href="/communities" style={{ color: '#f7971f', fontSize: 13, textDecoration: 'none' }}>← Усі спільноти</Link>
-        <h1 style={{ fontSize: 32, fontWeight: 800, margin: '16px 0 24px' }}>{community.name}</h1>
+
+        {coverSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverSrc}
+            alt={community.name}
+            style={{
+              width: '100%',
+              maxHeight: 280,
+              objectFit: 'cover',
+              borderRadius: 12,
+              marginTop: 16,
+              marginBottom: 20,
+              border: '1px solid var(--border)',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: 160,
+              marginTop: 16,
+              marginBottom: 20,
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(16,185,129,0.08) 100%)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 40,
+            }}
+            aria-hidden
+          >
+            👥
+          </div>
+        )}
+
+        <h1 style={{ fontSize: 32, fontWeight: 800, margin: '0 0 24px' }}>{community.name}</h1>
         <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--text-dim)', whiteSpace: 'pre-wrap' }}>{community.description}</p>
       </main>
       <Footer />

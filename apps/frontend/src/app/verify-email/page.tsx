@@ -21,7 +21,7 @@ function VerifyEmailContent() {
     apiVerifyEmail(token)
       .then((res) => {
         setStatus('success');
-        setMessage(res.message || 'Email успішно підтверджено.');
+        setMessage(res.message || 'Пошту успішно підтверджено.');
       })
       .catch((err: unknown) => {
         setStatus('error');

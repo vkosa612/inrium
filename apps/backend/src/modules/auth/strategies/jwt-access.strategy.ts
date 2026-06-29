@@ -37,7 +37,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
 
     if (!user || user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('User not found or account inactive');
+      throw new UnauthorizedException('Користувача не знайдено або обліковий запис неактивний');
     }
 
     return user;

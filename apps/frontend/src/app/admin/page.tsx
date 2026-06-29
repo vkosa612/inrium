@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { useAuth } from '@/context/AuthContext';
+import { roleLabel } from '@/lib/labels';
 
 const STAT_CARDS = [
   { label: 'Матеріалів', value: '—', icon: '📄', color: '#a78bfa' },
@@ -53,7 +54,7 @@ function AdminDashboardContent() {
                   letterSpacing: '0.06em',
                 }}
               >
-                {user.role}
+                {roleLabel(user.role)}
               </span>
             </div>
             <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
@@ -91,6 +92,9 @@ function AdminDashboardContent() {
               </div>
             ))}
           </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '-20px 0 32px' }}>
+            Детальна статистика буде додана пізніше.
+          </p>
 
           {/* ── Quick links ───────────────────────────────────────────── */}
           <div style={{ marginBottom: 12 }}>

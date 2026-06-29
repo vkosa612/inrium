@@ -144,7 +144,7 @@ export default function ContentForm({ initial }: ContentFormProps) {
 
       {/* Slug */}
       <div>
-        <label style={labelStyle}>Slug</label>
+        <label style={labelStyle}>URL-ідентифікатор</label>
         <input
           style={inputStyle}
           value={slug}

@@ -40,8 +40,16 @@ async function bootstrap() {
     ? rawCors.split(',').map((o) => o.trim())
     : rawCors;
 
+  // Типи @fastify/* інколи не збігаються з FastifyInstance у NestJS
+  const registerPlugin = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plugin: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    opts?: any,
+  ) => app.register(plugin, opts);
+
   // ── Multipart (image uploads) ─────────────────────────────────────────────
-  await app.register(fastifyMultipart, {
+  await registerPlugin(fastifyMultipart, {
     limits: {
       fileSize: 5 * 1024 * 1024,
       files: 1,
@@ -49,7 +57,7 @@ async function bootstrap() {
   });
 
   // ── Static uploads (public GET /uploads/*) ────────────────────────────────
-  await app.register(fastifyStatic, {
+  await registerPlugin(fastifyStatic, {
     root: uploadsDir,
     prefix: '/uploads/',
     decorateReply: false,
@@ -76,7 +84,7 @@ async function bootstrap() {
   });
 
   // ── Cookie support (required for refresh_token httpOnly cookie) ──────────
-  await app.register(fastifyCookie);
+  await registerPlugin(fastifyCookie);
 
   // ── Swagger (conditional — disabled in production via SWAGGER_ENABLED=false) ──
   if (swaggerEnabled) {
@@ -94,7 +102,7 @@ async function bootstrap() {
   }
 
   // ── Security headers (Helmet for Fastify) ────────────────────────────────
-  await app.register(fastifyHelmet, {
+  await registerPlugin(fastifyHelmet, {
     contentSecurityPolicy: swaggerEnabled
       ? {
           directives: {
