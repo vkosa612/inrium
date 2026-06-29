@@ -15,6 +15,10 @@ export class EmailService {
     return !!host?.trim();
   }
 
+  private isProduction(): boolean {
+    return this.config.get<string>('NODE_ENV') === 'production';
+  }
+
   private getSiteUrl(): string {
     const siteUrl = this.config.get<string>('SITE_URL');
     if (siteUrl?.trim()) return siteUrl.replace(/\/$/, '');
@@ -39,6 +43,17 @@ export class EmailService {
     return this.transporter;
   }
 
+  private safeSmtpError(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    return 'Невідома помилка SMTP';
+  }
+
+  /** У development — fallback-посилання в logs; у production — нічого. */
+  private logDevOnlyLink(label: string, email: string, url: string): void {
+    if (this.isProduction()) return;
+    this.logger.warn(`[dev-only] ${label} для ${email}: ${url}`);
+  }
+
   async sendMail(options: {
     to: string;
     subject: string;
@@ -56,9 +71,12 @@ export class EmailService {
         text: options.text,
         html: options.html,
       });
+      this.logger.log(`Лист надіслано: ${options.to} — «${options.subject}»`);
       return true;
     } catch (err) {
-      this.logger.error(`Failed to send email to ${options.to}`, err);
+      this.logger.error(
+        `Помилка SMTP (${options.to}): ${this.safeSmtpError(err)}`,
+      );
       return false;
     }
   }
@@ -70,10 +88,8 @@ export class EmailService {
     const html = `<p>Підтвердіть ваш email на INRIUM:</p><p><a href="${url}">${url}</a></p>`;
 
     const sent = await this.sendMail({ to: email, subject, text, html });
-    if (!sent && this.config.get<string>('NODE_ENV') !== 'production') {
-      this.logger.warn(
-        `[dev-only] SMTP not configured. Verification link for ${email}: ${url}`,
-      );
+    if (!sent) {
+      this.logDevOnlyLink('Посилання підтвердження email', email, url);
     }
   }
 
@@ -84,10 +100,8 @@ export class EmailService {
     const html = `<p>Запит на скидання пароля INRIUM:</p><p><a href="${url}">${url}</a></p><p>Посилання дійсне 1 годину.</p>`;
 
     const sent = await this.sendMail({ to: email, subject, text, html });
-    if (!sent && this.config.get<string>('NODE_ENV') !== 'production') {
-      this.logger.warn(
-        `[dev-only] SMTP not configured. Password reset link for ${email}: ${url}`,
-      );
+    if (!sent) {
+      this.logDevOnlyLink('Посилання скидання пароля', email, url);
     }
   }
 }

@@ -9,10 +9,16 @@ import {
   apiGetGameApplications,
   apiGetGameById,
   apiRejectGameApplication,
+  apiRemoveGameApplication,
   type GameApplication,
   type GameListItem,
 } from '@/lib/api';
-import { APPLICATION_STATUS_COLOR, APPLICATION_STATUS_LABEL, formatGameDate, GAME_STATUS_LABEL } from '@/lib/game-labels';
+import {
+  APPLICATION_STATUS_COLOR,
+  APPLICATION_STATUS_LABEL,
+  formatGameDate,
+  recruitmentStatusLabel,
+} from '@/lib/game-labels';
 import { formatApiError } from '@/lib/formatApiError';
 
 interface Props {
@@ -24,6 +30,7 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
   const [applications, setApplications] = useState<GameApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [actingId, setActingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -47,19 +54,56 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
     void load();
   }, [load]);
 
+  async function refreshGame() {
+    setGame(await apiGetGameById(gameId));
+  }
+
   async function handleAction(appId: string, action: 'approve' | 'reject') {
     setActingId(appId);
     setError('');
+    setSuccess('');
     try {
       const updated = action === 'approve'
         ? await apiApproveGameApplication(gameId, appId)
         : await apiRejectGameApplication(gameId, appId);
       setApplications((prev) => prev.map((a) => (a.id === appId ? { ...a, ...updated } : a)));
-      if (game) {
-        setGame(await apiGetGameById(gameId));
+      if (updated.game) {
+        setGame((prev) => prev ? {
+          ...prev,
+          status: updated.game!.status,
+          approvedCount: updated.game!.approvedCount,
+        } : prev);
+      } else {
+        await refreshGame();
       }
     } catch (err) {
       setError(formatApiError(err, 'Не вдалося оновити заявку'));
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function handleRemove(appId: string) {
+    if (!window.confirm('Виключити цього гравця з гри? Місце в наборі знову стане доступним.')) return;
+
+    setActingId(appId);
+    setError('');
+    setSuccess('');
+    try {
+      const updated = await apiRemoveGameApplication(gameId, appId);
+      setApplications((prev) => prev.map((a) => (a.id === appId ? { ...a, ...updated } : a)));
+      if (updated.game) {
+        setGame((prev) => prev ? {
+          ...prev,
+          status: updated.game!.status,
+          approvedCount: updated.game!.approvedCount,
+        } : prev);
+      } else {
+        await refreshGame();
+      }
+      setSuccess('Гравця виключено з гри.');
+    } catch (err) {
+      setError(formatApiError(err, 'Не вдалося виключити гравця'));
     } finally {
       setActingId(null);
     }
@@ -79,7 +123,7 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
           <div style={{ marginBottom: 24 }}>
             <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 8px' }}>{game.title}</h1>
             <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>
-              {GAME_STATUS_LABEL[game.status]} · {formatGameDate(game.startsAt)}
+              {recruitmentStatusLabel(game.status)} · {formatGameDate(game.startsAt)}
               {game.maxPlayers != null && ` · ${game.approvedCount}/${game.maxPlayers} гравців`}
             </p>
             <Link href={`/games/${game.slug}`} style={{ fontSize: 13, color: '#10b981', textDecoration: 'none' }}>
@@ -94,6 +138,12 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
           </div>
         )}
 
+        {success && (
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, fontSize: 13, color: '#10b981' }}>
+            {success}
+          </div>
+        )}
+
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Завантаження заявок…</p>
         ) : applications.length === 0 ? (
@@ -103,6 +153,7 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
             {applications.map((app) => {
               const color = APPLICATION_STATUS_COLOR[app.status] ?? '#6b7280';
               const isPending = app.status === 'PENDING';
+              const isApproved = app.status === 'APPROVED';
               return (
                 <article key={app.id} style={{
                   padding: '18px 20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12,
@@ -141,6 +192,14 @@ export default function GameApplicationsPageClient({ gameId }: Props) {
                           Відхилити
                         </button>
                       </div>
+                    )}
+                    {isApproved && (
+                      <button type="button" disabled={actingId === app.id} onClick={() => void handleRemove(app.id)} style={{
+                        padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(168,85,247,0.4)', background: 'transparent',
+                        color: '#c084fc', fontSize: 13, cursor: actingId === app.id ? 'wait' : 'pointer',
+                      }}>
+                        Виключити з гри
+                      </button>
                     )}
                   </div>
                 </article>

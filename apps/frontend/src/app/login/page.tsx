@@ -15,7 +15,16 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [flash, setFlash] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem('inrium_flash_message');
+    if (msg) {
+      setFlash(msg);
+      sessionStorage.removeItem('inrium_flash_message');
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && user) router.replace(nextPath);
@@ -108,6 +117,12 @@ function LoginForm() {
               Забули пароль?
             </Link>
           </div>
+
+          {flash && (
+            <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, fontSize: 13, color: '#10b981' }}>
+              {flash}
+            </div>
+          )}
 
           {error && <ErrorBox>{error}</ErrorBox>}
 

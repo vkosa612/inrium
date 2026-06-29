@@ -6,17 +6,11 @@ import Footer from '@/components/Footer';
 import GameApplyButton from '@/components/GameApplyButton';
 import MarkdownContent from '@/components/MarkdownContent';
 import { apiGetGameBySlug } from '@/lib/api';
+import { recruitmentStatusLabel } from '@/lib/game-labels';
 
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
-
-const STATUS_LABEL: Record<string, string> = {
-  OPEN: 'Відкрита для заявок',
-  FULL: 'Заповнена',
-  IN_PROGRESS: 'Гра триває',
-  FINISHED: 'Завершена',
-};
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -68,7 +62,7 @@ export default async function GameDetailPage({ params }: Props) {
 
         <h1 style={{ fontSize: 32, fontWeight: 800, margin: '16px 0 8px' }}>{game.title}</h1>
         <p style={{ color: '#10b981', fontSize: 14, marginBottom: 24 }}>
-          {STATUS_LABEL[game.status] ?? game.status}
+          {recruitmentStatusLabel(game.status)}
         </p>
 
         <div
@@ -112,9 +106,13 @@ export default async function GameDetailPage({ params }: Props) {
 
         <GameApplyButton gameId={game.id} gameSlug={game.slug} gameStatus={game.status} masterId={game.master.id} />
 
-        {game.applications.length > 0 && (
-          <section style={{ marginTop: 48 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Учасники</h2>
+        <section style={{ marginTop: 48 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Учасники</h2>
+          {game.applications.length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>
+              Поки що немає схвалених гравців.
+            </p>
+          ) : (
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {game.applications.map((app) => (
                 <li
@@ -127,12 +125,15 @@ export default async function GameDetailPage({ params }: Props) {
                     fontSize: 14,
                   }}
                 >
-                  {app.user.displayName}
+                  Гравець:{' '}
+                  <Link href={`/users/${app.user.id}`} style={{ color: '#f7971f', fontWeight: 600, textDecoration: 'none' }}>
+                    {app.user.displayName}
+                  </Link>
                 </li>
               ))}
             </ul>
-          </section>
-        )}
+          )}
+        </section>
       </main>
       <Footer />
     </>

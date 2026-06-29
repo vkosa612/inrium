@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { apiGetHome, apiGetHomeBlocks, resolveMediaUrl, type HomeData, type HomePageBlock, type ContentItem, type GameSystem, type Kit, type HelpItem, type GameListItem } from '@/lib/api';
+import { formatApprovedPlayerNames, recruitmentStatusLabel } from '@/lib/game-labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,10 @@ const COMPLEXITY_COLOR: Record<string, string> = {
 };
 
 const GAME_STATUS_LABEL: Record<string, string> = {
-  OPEN: 'Відкрита', FULL: 'Заповнена', IN_PROGRESS: 'Триває', FINISHED: 'Завершена',
+  OPEN: 'Відкрита для заявок',
+  FULL: 'Закрита для заявок',
+  IN_PROGRESS: 'Триває',
+  FINISHED: 'Завершена',
 };
 
 const DEFAULT_HOME_BLOCKS: HomePageBlock[] = [
@@ -207,6 +211,7 @@ function HeroSection({ stats, subtitle }: { stats: HomeData['stats']; subtitle?:
 
 function GameCard({ game }: { game: GameListItem }) {
   const imageSrc = resolveMediaUrl(game.coverImageUrl);
+  const playersLine = formatApprovedPlayerNames(game.approvedPlayers ?? []);
   return (
     <Link href={`/games/${game.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -218,13 +223,17 @@ function GameCard({ game }: { game: GameListItem }) {
         )}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-            {GAME_STATUS_LABEL[game.status] ?? game.status}
+            {GAME_STATUS_LABEL[game.status] ?? recruitmentStatusLabel(game.status)}
           </span>
           {game.gameSystem && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{game.gameSystem.title}</span>}
         </div>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, margin: 0 }}>{game.title}</h3>
         <p className="line-clamp-2" style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6, margin: 0, flex: 1 }}>{game.description}</p>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>🧙 {game.master.displayName}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          🧙 {game.master.displayName}
+          {game.maxPlayers != null && ` · Гравці: ${game.approvedCount} / ${game.maxPlayers}`}
+          {playersLine && <div style={{ marginTop: 4, color: 'var(--text-dim)' }}>👥 {playersLine}</div>}
+        </div>
       </article>
     </Link>
   );

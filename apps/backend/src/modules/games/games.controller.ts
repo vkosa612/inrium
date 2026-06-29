@@ -176,6 +176,18 @@ export class GamesController {
     return this.gamesService.updateApplication(id, appId, 'cancel', user);
   }
 
+  @Patch(':id/applications/:appId/remove')
+  @ApiBearerAuth()
+  @Roles(UserRole.GAME_MASTER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Remove approved player from game (master or admin)' })
+  removePlayer(
+    @Param('id') id: string,
+    @Param('appId') appId: string,
+    @CurrentUser() user: UserPublic,
+  ) {
+    return this.gamesService.removeApplication(id, appId, user);
+  }
+
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get game by slug' })

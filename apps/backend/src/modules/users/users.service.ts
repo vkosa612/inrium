@@ -9,7 +9,10 @@ import { UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { UserPublic } from '../auth/types/auth-response.type';
 import type { ChangePasswordDto } from './dto/change-password.dto';
+import type { DeleteAccountDto } from './dto/delete-account.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
+
+const DELETE_CONFIRMATION = 'ВИДАЛИТИ';
 
 const USER_SELECT = {
   id: true,
@@ -91,6 +94,39 @@ export class UsersService {
     ]);
 
     return { message: 'Password changed. Please sign in again.' };
+  }
+
+  async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<{ message: string }> {
+    if (dto.confirmation !== DELETE_CONFIRMATION) {
+      throw new BadRequestException('Для підтвердження введіть ВИДАЛИТИ');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, passwordHash: true },
+    });
+    if (!user) throw new NotFoundException('Користувача не знайдено');
+
+    const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordValid) {
+      throw new UnauthorizedException('Невірний поточний пароль');
+    }
+
+    if (user.role === UserRole.ADMIN) {
+      const adminCount = await this.prisma.user.count({
+        where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException('Неможливо видалити останнього адміністратора.');
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Сесії, закладки, заявки та ігри майстра — через onDelete: Cascade у schema.
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return { message: 'Акаунт видалено.' };
   }
 
   async getPublicProfile(id: string) {

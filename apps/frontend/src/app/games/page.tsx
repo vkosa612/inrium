@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaginationWrapper from '@/components/PaginationWrapper';
 import { apiGetGames, type GameListItem } from '@/lib/api';
+import { formatApprovedPlayerNames, recruitmentStatusLabel } from '@/lib/game-labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  OPEN: 'Відкрита',
-  FULL: 'Заповнена',
+  OPEN: 'Відкрита для заявок',
+  FULL: 'Закрита для заявок',
   IN_PROGRESS: 'Триває',
   FINISHED: 'Завершена',
 };
@@ -33,6 +34,7 @@ function formatDate(d: string | null) {
 }
 
 function GameCard({ game }: { game: GameListItem }) {
+  const playersLine = formatApprovedPlayerNames(game.approvedPlayers ?? []);
   return (
     <Link href={`/games/${game.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <article
@@ -60,7 +62,7 @@ function GameCard({ game }: { game: GameListItem }) {
               border: '1px solid rgba(16,185,129,0.25)',
             }}
           >
-            {STATUS_LABEL[game.status] ?? game.status}
+            {STATUS_LABEL[game.status] ?? recruitmentStatusLabel(game.status)}
           </span>
           {game.gameSystem && (
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{game.gameSystem.title}</span>
@@ -74,8 +76,13 @@ function GameCard({ game }: { game: GameListItem }) {
           <div>📅 {formatDate(game.startsAt)}</div>
           <div style={{ marginTop: 4 }}>
             🧙 {game.master.displayName}
-            {game.maxPlayers != null && ` · ${game.approvedCount}/${game.maxPlayers} гравців`}
+            {game.maxPlayers != null && ` · Гравці: ${game.approvedCount} / ${game.maxPlayers}`}
           </div>
+          {playersLine && (
+            <div style={{ marginTop: 4, color: 'var(--text-dim)' }}>
+              👥 {playersLine}
+            </div>
+          )}
         </div>
       </article>
     </Link>

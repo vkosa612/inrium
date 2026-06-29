@@ -32,12 +32,17 @@ async function apiFetch<T>(
   options?: RequestInit,
 ): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
+
+  const headers: Record<string, string> = {
+    ...((options?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  if (options?.body !== undefined && options?.body !== null && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers,
   });
 
   const body = await res.json() as ApiResponse<T> | ApiError;
@@ -215,6 +220,20 @@ export async function apiChangePassword(
   return apiFetchAuth<{ message: string }>('/users/me/change-password', {
     method: 'POST',
     body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export interface DeleteAccountPayload {
+  password: string;
+  confirmation: string;
+}
+
+export async function apiDeleteMyAccount(
+  payload: DeleteAccountPayload,
+): Promise<{ message: string }> {
+  return apiFetchAuth<{ message: string }>('/users/me/delete-account', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }
 
@@ -776,6 +795,7 @@ export interface GameListItem {
   master: GameMaster;
   gameSystem: { id: string; slug: string; title: string } | null;
   approvedCount: number;
+  approvedPlayers?: string[];
 }
 
 export interface GameDetail extends GameListItem {
@@ -809,7 +829,7 @@ export async function apiApplyToGame(gameId: string, message?: string): Promise<
 }
 
 export type GameStatus = 'DRAFT' | 'OPEN' | 'FULL' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
-export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REMOVED';
 
 export interface GameApplication {
   id: string;
@@ -818,6 +838,11 @@ export interface GameApplication {
   createdAt: string;
   updatedAt?: string;
   user?: GameMaster;
+  game?: {
+    status: GameStatus;
+    approvedCount: number;
+    maxPlayers: number | null;
+  };
 }
 
 export interface MyGameItem extends GameListItem {
@@ -904,6 +929,10 @@ export async function apiApproveGameApplication(gameId: string, appId: string): 
 
 export async function apiRejectGameApplication(gameId: string, appId: string): Promise<GameApplication> {
   return apiFetchAuth<GameApplication>(`/games/${gameId}/applications/${appId}/reject`, { method: 'PATCH' });
+}
+
+export async function apiRemoveGameApplication(gameId: string, appId: string): Promise<GameApplication> {
+  return apiFetchAuth<GameApplication>(`/games/${gameId}/applications/${appId}/remove`, { method: 'PATCH' });
 }
 
 /** Alias for public game detail by slug */

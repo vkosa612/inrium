@@ -46,12 +46,31 @@ const GAME_SELECT = {
   },
 } as const;
 
+const APPROVED_PLAYERS_SELECT = {
+  where: { status: GameApplicationStatus.APPROVED },
+  select: { user: { select: { displayName: true } } },
+  orderBy: { updatedAt: 'asc' as const },
+};
+
+const APPLICATION_SELECT = {
+  id: true,
+  status: true,
+  message: true,
+  createdAt: true,
+  updatedAt: true,
+  user: {
+    select: { id: true, displayName: true, avatarUrl: true },
+  },
+} as const;
+
 const PUBLIC_STATUSES: GameStatus[] = [
   GameStatus.OPEN,
   GameStatus.FULL,
   GameStatus.IN_PROGRESS,
   GameStatus.FINISHED,
 ];
+
+const RECRUITMENT_STATUSES: GameStatus[] = [GameStatus.OPEN, GameStatus.FULL];
 
 @Injectable()
 export class GamesService {
@@ -78,7 +97,25 @@ export class GamesService {
     const [items, total] = await Promise.all([
       this.prisma.game.findMany({
         where,
-        select: GAME_SELECT,
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          description: true,
+          coverImageUrl: true,
+          status: true,
+          maxPlayers: true,
+          startsAt: true,
+          createdAt: true,
+          updatedAt: true,
+          master: {
+            select: { id: true, displayName: true, avatarUrl: true },
+          },
+          gameSystem: {
+            select: { id: true, slug: true, title: true },
+          },
+          applications: APPROVED_PLAYERS_SELECT,
+        },
         orderBy: [{ startsAt: 'asc' }, { createdAt: 'desc' }],
         skip,
         take: limit,
@@ -86,9 +123,10 @@ export class GamesService {
       this.prisma.game.count({ where }),
     ]);
 
-    const mapped = items.map(({ _count, ...g }) => ({
+    const mapped = items.map(({ applications, ...g }) => ({
       ...g,
-      approvedCount: _count.applications,
+      approvedCount: applications.length,
+      approvedPlayers: applications.map((a) => a.user.displayName),
     }));
 
     return {
@@ -129,6 +167,7 @@ export class GamesService {
             status: true,
             user: { select: { id: true, displayName: true, avatarUrl: true } },
           },
+          orderBy: { updatedAt: 'asc' },
         },
       },
     });
@@ -170,7 +209,7 @@ export class GamesService {
       select: GAME_SELECT,
     });
     const { _count, ...rest } = created;
-    return { ...rest, approvedCount: _count.applications };
+    return { ...rest, approvedCount: _count.applications, approvedPlayers: [] };
   }
 
   async update(id: string, dto: UpdateGameDto, user: UserPublic) {
@@ -219,7 +258,10 @@ export class GamesService {
   async apply(gameId: string, user: UserPublic, dto: ApplyGameDto) {
     const game = await this.prisma.game.findUnique({ where: { id: gameId } });
     if (!game || game.status !== GameStatus.OPEN) {
-      throw new NotFoundException('Game not open for applications');
+      if (game?.status === GameStatus.FULL) {
+        throw new ConflictException('Набір на цю гру вже закрито.');
+      }
+      throw new NotFoundException('Гра не відкрита для заявок');
     }
     if (game.masterId === user.id) {
       throw new ConflictException('Cannot apply to your own game');
@@ -236,7 +278,11 @@ export class GamesService {
       if (existing.status === GameApplicationStatus.APPROVED) {
         throw new ConflictException('You are already approved for this game');
       }
-      if (existing.status === GameApplicationStatus.CANCELLED || existing.status === GameApplicationStatus.REJECTED) {
+      if (
+        existing.status === GameApplicationStatus.CANCELLED ||
+        existing.status === GameApplicationStatus.REJECTED ||
+        existing.status === GameApplicationStatus.REMOVED
+      ) {
         return this.prisma.gameApplication.update({
           where: { id: existing.id },
           data: { status: GameApplicationStatus.PENDING, message: dto.message ?? existing.message },
@@ -287,6 +333,7 @@ export class GamesService {
       return this.prisma.gameApplication.update({
         where: { id: appId },
         data: { status: GameApplicationStatus.CANCELLED },
+        select: APPLICATION_SELECT,
       });
     }
 
@@ -294,29 +341,103 @@ export class GamesService {
       throw new ForbiddenException('Only the game master can approve or reject');
     }
 
-    const status =
-      action === 'approve'
-        ? GameApplicationStatus.APPROVED
-        : GameApplicationStatus.REJECTED;
-
-    const updated = await this.prisma.gameApplication.update({
-      where: { id: appId },
-      data: { status },
-    });
-
-    if (action === 'approve' && app.game.maxPlayers) {
-      const approved = await this.prisma.gameApplication.count({
-        where: { gameId, status: GameApplicationStatus.APPROVED },
-      });
-      if (approved >= app.game.maxPlayers) {
-        await this.prisma.game.update({
-          where: { id: gameId },
-          data: { status: GameStatus.FULL },
-        });
+    if (action === 'reject') {
+      if (app.status !== GameApplicationStatus.PENDING) {
+        throw new ConflictException('Заявку можна відхилити лише у статусі «Очікує рішення».');
       }
+      return this.prisma.gameApplication.update({
+        where: { id: appId },
+        data: { status: GameApplicationStatus.REJECTED },
+        select: APPLICATION_SELECT,
+      });
     }
 
-    return updated;
+    return this.prisma.$transaction(async (tx) => {
+      const lockedApp = await tx.gameApplication.findFirst({
+        where: { id: appId, gameId },
+        include: { game: true },
+      });
+      if (!lockedApp) throw new NotFoundException('Application not found');
+
+      if (lockedApp.status !== GameApplicationStatus.PENDING) {
+        throw new ConflictException('Заявку можна схвалити лише у статусі «Очікує рішення».');
+      }
+
+      await tx.$executeRaw`SELECT id FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
+
+      const game = await tx.game.findUnique({ where: { id: gameId } });
+      if (!game) throw new NotFoundException('Game not found');
+
+      const approvedCount = await this.countApproved(tx, gameId);
+      if (game.maxPlayers && approvedCount >= game.maxPlayers) {
+        throw new ConflictException('У грі вже набрано максимальну кількість гравців.');
+      }
+
+      const updated = await tx.gameApplication.update({
+        where: { id: appId },
+        data: { status: GameApplicationStatus.APPROVED },
+        select: APPLICATION_SELECT,
+      });
+
+      const gameStatus = await this.syncRecruitmentStatus(tx, game);
+      const newApprovedCount = approvedCount + 1;
+
+      return {
+        ...updated,
+        game: {
+          status: gameStatus,
+          approvedCount: newApprovedCount,
+          maxPlayers: game.maxPlayers,
+        },
+      };
+    });
+  }
+
+  async removeApplication(gameId: string, appId: string, user: UserPublic) {
+    const app = await this.prisma.gameApplication.findFirst({
+      where: { id: appId, gameId },
+      include: { game: true },
+    });
+    if (!app) throw new NotFoundException('Application not found');
+
+    if (app.game.masterId !== user.id && user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only the game master can remove players');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const lockedApp = await tx.gameApplication.findFirst({
+        where: { id: appId, gameId },
+        include: { game: true },
+      });
+      if (!lockedApp) throw new NotFoundException('Application not found');
+
+      if (lockedApp.status !== GameApplicationStatus.APPROVED) {
+        throw new ConflictException('Можна виключити лише схваленого гравця.');
+      }
+
+      await tx.$executeRaw`SELECT id FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
+
+      const updated = await tx.gameApplication.update({
+        where: { id: appId },
+        data: { status: GameApplicationStatus.REMOVED },
+        select: APPLICATION_SELECT,
+      });
+
+      const game = await tx.game.findUnique({ where: { id: gameId } });
+      if (!game) throw new NotFoundException('Game not found');
+
+      const gameStatus = await this.syncRecruitmentStatus(tx, game);
+      const approvedCount = await this.countApproved(tx, gameId);
+
+      return {
+        ...updated,
+        game: {
+          status: gameStatus,
+          approvedCount,
+          maxPlayers: game.maxPlayers,
+        },
+      };
+    });
   }
 
   async listMyGames(user: UserPublic) {
@@ -415,16 +536,7 @@ export class GamesService {
 
     return this.prisma.gameApplication.findMany({
       where: { gameId },
-      select: {
-        id: true,
-        status: true,
-        message: true,
-        createdAt: true,
-        updatedAt: true,
-        user: {
-          select: { id: true, displayName: true, avatarUrl: true },
-        },
-      },
+      select: APPLICATION_SELECT,
       orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
     });
   }
@@ -452,6 +564,30 @@ export class GamesService {
     });
     const { _count, ...rest } = updated;
     return { ...rest, approvedCount: _count.applications, upload: saved };
+  }
+
+  private async countApproved(tx: Prisma.TransactionClient, gameId: string) {
+    return tx.gameApplication.count({
+      where: { gameId, status: GameApplicationStatus.APPROVED },
+    });
+  }
+
+  private async syncRecruitmentStatus(
+    tx: Prisma.TransactionClient,
+    game: { id: string; status: GameStatus; maxPlayers: number | null },
+  ): Promise<GameStatus> {
+    if (!game.maxPlayers || game.maxPlayers <= 0) return game.status;
+    if (!RECRUITMENT_STATUSES.includes(game.status)) return game.status;
+
+    const approvedCount = await this.countApproved(tx, game.id);
+    const targetStatus =
+      approvedCount >= game.maxPlayers ? GameStatus.FULL : GameStatus.OPEN;
+
+    if (targetStatus !== game.status) {
+      await tx.game.update({ where: { id: game.id }, data: { status: targetStatus } });
+      return targetStatus;
+    }
+    return game.status;
   }
 
   private async findOwnedOrAdmin(id: string, user: UserPublic) {

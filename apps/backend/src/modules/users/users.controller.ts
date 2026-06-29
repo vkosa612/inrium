@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPublic } from '../auth/types/auth-response.type';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { AdminUpdateRoleDto } from './dto/admin-update-role.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './users.service';
@@ -26,6 +27,12 @@ export class UsersController {
   @ApiOperation({ summary: 'Change password and revoke all refresh sessions' })
   changePassword(@CurrentUser() user: UserPublic, @Body() dto: ChangePasswordDto) {
     return this.usersService.changePassword(user.id, dto);
+  }
+
+  @Post('me/delete-account')
+  @ApiOperation({ summary: 'Permanently delete own account (hard delete)' })
+  deleteAccount(@CurrentUser() user: UserPublic, @Body() dto: DeleteAccountDto) {
+    return this.usersService.deleteAccount(user.id, dto);
   }
 
   @Get()

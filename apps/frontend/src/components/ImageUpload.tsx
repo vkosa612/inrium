@@ -13,7 +13,6 @@ export interface ImageUploadProps {
   error?: string;
   preview?: boolean;
   helperText?: string;
-  allowManualUrl?: boolean;
   uploadFn?: (file: File) => Promise<UploadImageResult>;
 }
 
@@ -24,7 +23,6 @@ export default function ImageUpload({
   error,
   preview = true,
   helperText,
-  allowManualUrl = true,
   uploadFn,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,37 +178,6 @@ export default function ImageUpload({
           </p>
         )}
       </div>
-
-      {/* Manual URL fallback */}
-      {allowManualUrl && (
-        <div>
-          <label style={{
-            display: 'block',
-            fontSize: 11,
-            color: 'var(--text-muted)',
-            marginBottom: 4,
-          }}>
-            Або вставте URL зображення
-          </label>
-          <input
-            type="url"
-            value={value}
-            onChange={(e) => { onChange(e.target.value); setLocalError(''); }}
-            placeholder="https://example.com/image.jpg або /uploads/images/..."
-            style={{
-              width: '100%',
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              color: 'var(--text)',
-              fontSize: 13,
-              padding: '8px 12px',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-      )}
 
       {displayError && (
         <div style={{

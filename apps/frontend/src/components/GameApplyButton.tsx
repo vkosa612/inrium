@@ -97,7 +97,7 @@ export default function GameApplyButton({ gameId, gameSlug, gameStatus, masterId
     return <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Перевірка заявки…</p>;
   }
 
-  if (application && application.status !== 'CANCELLED' && application.status !== 'REJECTED') {
+  if (application && application.status !== 'CANCELLED' && application.status !== 'REJECTED' && application.status !== 'REMOVED') {
     const color = APPLICATION_STATUS_COLOR[application.status] ?? '#6b7280';
     const status = application.status as ApplicationStatus;
     return (

@@ -1,8 +1,17 @@
 export const GAME_STATUS_LABEL: Record<string, string> = {
   DRAFT: 'Чернетка',
   OPEN: 'Відкрита',
-  FULL: 'Заповнена',
+  FULL: 'Закрита для заявок',
   IN_PROGRESS: 'Триває',
+  FINISHED: 'Завершена',
+  CANCELLED: 'Скасована',
+};
+
+/** Статус набору на публічних сторінках */
+export const RECRUITMENT_STATUS_LABEL: Record<string, string> = {
+  OPEN: 'Відкрита для заявок',
+  FULL: 'Закрита для заявок',
+  IN_PROGRESS: 'Гра триває',
   FINISHED: 'Завершена',
   CANCELLED: 'Скасована',
 };
@@ -12,6 +21,7 @@ export const APPLICATION_STATUS_LABEL: Record<string, string> = {
   APPROVED: 'Схвалено',
   REJECTED: 'Відхилено',
   CANCELLED: 'Скасовано',
+  REMOVED: 'Виключено майстром',
 };
 
 export const APPLICATION_STATUS_COLOR: Record<string, string> = {
@@ -19,7 +29,20 @@ export const APPLICATION_STATUS_COLOR: Record<string, string> = {
   APPROVED: '#10b981',
   REJECTED: '#ef4444',
   CANCELLED: '#6b7280',
+  REMOVED: '#a855f7',
 };
+
+export function recruitmentStatusLabel(status: string): string {
+  return RECRUITMENT_STATUS_LABEL[status] ?? GAME_STATUS_LABEL[status] ?? status;
+}
+
+/** Короткий список імен гравців для карток */
+export function formatApprovedPlayerNames(names: string[], maxVisible = 3): string {
+  if (names.length === 0) return '';
+  if (names.length <= maxVisible) return names.join(', ');
+  const visible = names.slice(0, maxVisible).join(', ');
+  return `${visible}… +${names.length - maxVisible}`;
+}
 
 export function formatGameDate(d: string | null | undefined): string {
   if (!d) return 'Дата уточнюється';

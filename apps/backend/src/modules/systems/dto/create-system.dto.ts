@@ -5,7 +5,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUrl,
   Matches,
   MaxLength,
   MinLength,
@@ -56,9 +55,9 @@ export class CreateSystemDto {
   @IsString({ each: true })
   tags?: string[];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Шлях до зображення (/uploads/... або https://)' })
   @IsOptional()
-  @IsUrl()
+  @IsString()
   @MaxLength(512)
   imageUrl?: string;
 

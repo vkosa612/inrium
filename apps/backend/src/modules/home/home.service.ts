@@ -33,10 +33,10 @@ const GAME_HOME_SELECT = {
   updatedAt: true,
   master: { select: { id: true, displayName: true, avatarUrl: true } },
   gameSystem: { select: { id: true, slug: true, title: true } },
-  _count: {
-    select: {
-      applications: { where: { status: GameApplicationStatus.APPROVED } },
-    },
+  applications: {
+    where: { status: GameApplicationStatus.APPROVED },
+    select: { user: { select: { displayName: true } } },
+    orderBy: { updatedAt: 'asc' as const },
   },
 } as const;
 
@@ -115,9 +115,10 @@ export class HomeService {
         ]),
       ]);
 
-    const games = gamesRaw.map(({ _count, ...g }) => ({
+    const games = gamesRaw.map(({ applications, ...g }) => ({
       ...g,
-      approvedCount: _count.applications,
+      approvedCount: applications.length,
+      approvedPlayers: applications.map((a) => a.user.displayName),
     }));
 
     const [newsCount, articlesCount, systemsCount, kitsCount, helpCount, gamesCount] = counts;

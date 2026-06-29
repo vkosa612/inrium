@@ -9,6 +9,7 @@ import ImageUpload from '@/components/ImageUpload';
 import { useAuth } from '@/context/AuthContext';
 import {
   apiChangePassword,
+  apiDeleteMyAccount,
   apiGetBookmarks,
   apiGetMe,
   apiGetMyApplications,
@@ -19,6 +20,7 @@ import {
   type BookmarkItem,
   type MyGameApplication,
 } from '@/lib/api';
+import { clearAuth } from '@/lib/auth-storage';
 import { APPLICATION_STATUS_COLOR, APPLICATION_STATUS_LABEL, formatGameDate } from '@/lib/game-labels';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -99,6 +101,11 @@ export default function ProfilePageClient() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
   useEffect(() => {
     if (!ctxUser) return;
 
@@ -160,6 +167,27 @@ export default function ProfilePageClient() {
       setPasswordError(err instanceof Error ? err.message : 'Помилка зміни пароля');
     } finally {
       setPasswordSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (!window.confirm('Ви точно хочете назавжди видалити акаунт?')) return;
+
+    setDeleteSaving(true);
+    setDeleteError('');
+    try {
+      await apiDeleteMyAccount({
+        password: deletePassword,
+        confirmation: deleteConfirmation,
+      });
+      clearAuth();
+      sessionStorage.setItem('inrium_flash_message', 'Акаунт видалено.');
+      router.replace('/login');
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Не вдалося видалити акаунт');
+    } finally {
+      setDeleteSaving(false);
     }
   }
 
@@ -249,7 +277,7 @@ export default function ProfilePageClient() {
                 <label style={labelStyle}>Про себе</label>
                 <textarea style={{ ...inputStyle, minHeight: 88, resize: 'vertical' }} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} placeholder="Коротко про себе (необов'язково)" />
               </div>
-              <ImageUpload label="Аватар" value={avatarUrl} onChange={setAvatarUrl} helperText="або URL зображення" />
+              <ImageUpload label="Аватар" value={avatarUrl} onChange={setAvatarUrl} />
               {profileSuccess && (
                 <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, fontSize: 13, color: '#10b981' }}>
                   {profileSuccess}
@@ -380,6 +408,58 @@ export default function ProfilePageClient() {
                 ))}
               </ul>
             )}
+          </section>
+
+          {/* Delete account */}
+          <section style={{
+            background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.25)',
+            borderRadius: 16, padding: '24px 28px', marginBottom: 20,
+          }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f87171', marginBottom: 8 }}>Видалення акаунта</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+              Ця дія повністю видалить ваш акаунт і пов&apos;язані персональні дані. Відновити акаунт буде неможливо.
+            </p>
+            <form onSubmit={(e) => void handleDeleteAccount(e)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Поточний пароль</label>
+                <input
+                  type="password"
+                  style={inputStyle}
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Підтвердження</label>
+                <input
+                  type="text"
+                  style={inputStyle}
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  required
+                  placeholder="ВИДАЛИТИ"
+                  autoComplete="off"
+                />
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Введіть ВИДАЛИТИ для підтвердження
+                </p>
+              </div>
+              {deleteError && (
+                <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontSize: 13, color: '#ef4444' }}>
+                  {deleteError}
+                </div>
+              )}
+              <button type="submit" disabled={deleteSaving} style={{
+                alignSelf: 'flex-start', padding: '10px 22px', borderRadius: 8,
+                border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.12)',
+                color: '#f87171', fontWeight: 700, fontSize: 14,
+                cursor: deleteSaving ? 'wait' : 'pointer',
+              }}>
+                {deleteSaving ? 'Видаляю…' : 'Видалити акаунт'}
+              </button>
+            </form>
           </section>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
