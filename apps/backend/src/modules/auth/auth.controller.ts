@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -8,106 +7,123 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { AuthService } from './auth.service';
+import { CsrfService } from '../../common/security/csrf.service';
+import {
+  ACCESS_COOKIE,
+  CSRF_COOKIE,
+  REFRESH_COOKIE,
+  REFRESH_COOKIE_PATH,
+} from '../../common/security/security.constants';
+import { SecurityConfigService } from '../../common/security/security-config.service';
+import { AuthService, RequestMeta } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
-import { LoginDto } from './dto/login.dto';
-import { RefreshDto } from './dto/refresh.dto';
-import { RegisterDto } from './dto/register.dto';
 import {
   RequestPasswordResetDto,
+  ResendVerificationDto,
   ResetPasswordDto,
   VerifyEmailDto,
 } from './dto/email.dto';
-import type { UserPublic } from './types/auth-response.type';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import type { IssuedTokens, UserPublic } from './types/auth-response.type';
 
-const REFRESH_COOKIE = 'refresh_token';
-const COOKIE_BASE = {
-  httpOnly: true,
-  sameSite: 'strict' as const,
-  path: '/api/auth',
-};
-
-// Stricter rate limit for auth endpoints: max 10 requests per minute per IP
-const AUTH_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
+const CSRF_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly security: SecurityConfigService,
+    private readonly csrf: CsrfService,
+  ) {}
+
+  // ── CSRF token ──────────────────────────────────────────────────────────────
+
+  @Public()
+  @Get('csrf')
+  @ApiOperation({
+    summary: 'Отримати CSRF-токен',
+    description:
+      'Токен прив\'язаний до поточної сесії. Надсилайте його в заголовку `X-CSRF-Token` для POST/PUT/PATCH/DELETE.',
+  })
+  getCsrfToken(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const existing = (req.cookies as Record<string, string | undefined> | undefined)?.[CSRF_COOKIE];
+    const nonce = existing && /^[A-Za-z0-9_-]{20,64}$/.test(existing) ? existing : this.csrf.generateNonce();
+
+    reply.setCookie(CSRF_COOKIE, nonce, {
+      ...this.security.cookieAttributes('/'),
+      maxAge: CSRF_COOKIE_MAX_AGE_SECONDS,
+    });
+    return { csrfToken: this.csrf.issueToken(nonce, req) };
+  }
 
   // ── Register ────────────────────────────────────────────────────────────────
 
   @Public()
   @Post('register')
-  @Throttle(AUTH_THROTTLE)
-  @ApiOperation({ summary: 'Register a new account' })
-  @ApiResponse({ status: 201, description: 'Registration successful' })
-  @ApiResponse({ status: 409, description: 'Email already taken' })
-  async register(
-    @Body() dto: RegisterDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const result = await this.authService.register(dto, {
-      userAgent: req.headers['user-agent'],
-      ipAddress: req.ip,
-    });
-    this.setRefreshCookie(reply, result.refreshToken);
-    return result;
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Реєстрація (відповідь не розкриває, чи існує email)' })
+  @ApiResponse({ status: 202, description: 'Запит прийнято' })
+  register(@Body() dto: RegisterDto, @Req() req: FastifyRequest) {
+    return this.authService.register(dto, this.meta(req));
   }
 
   // ── Login ───────────────────────────────────────────────────────────────────
 
   @Public()
   @Post('login')
-  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login with email and password' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiOperation({ summary: 'Вхід. Токени встановлюються HttpOnly cookie.' })
+  @ApiResponse({ status: 200, description: 'Успішний вхід' })
+  @ApiResponse({ status: 401, description: 'Невірні облікові дані' })
   async login(
     @Body() dto: LoginDto,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    const result = await this.authService.login(dto, {
-      userAgent: req.headers['user-agent'],
-      ipAddress: req.ip,
-    });
-    this.setRefreshCookie(reply, result.refreshToken);
-    return result;
+    const { tokens, user } = await this.authService.login(dto, this.meta(req));
+    this.setAuthCookies(reply, tokens);
+    return { user };
   }
 
   // ── Refresh ─────────────────────────────────────────────────────────────────
 
   @Public()
   @Post('refresh')
-  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Refresh access token',
-    description:
-      'Pass refresh token in body OR via `refresh_token` httpOnly cookie.',
+    summary: 'Оновити сесію',
+    description: 'Читає refresh-токен з HttpOnly cookie; ротує його та видає новий access.',
   })
-  async refresh(
-    @Body() dto: RefreshDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const token = this.extractRefreshToken(req, dto.refreshToken);
-    const tokens = await this.authService.refresh(token);
-    this.setRefreshCookie(reply, tokens.refreshToken);
-    return tokens;
+  async refresh(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const refreshToken = this.cookie(req, REFRESH_COOKIE);
+    if (!refreshToken) {
+      throw new UnauthorizedException('Сесію не знайдено');
+    }
+
+    try {
+      const { tokens, user } = await this.authService.refresh(refreshToken, this.meta(req));
+      reply.setCookie(ACCESS_COOKIE, tokens.accessToken, {
+        ...this.security.cookieAttributes('/'),
+        maxAge: tokens.accessMaxAgeSeconds,
+      });
+      if (tokens.refreshToken && tokens.refreshMaxAgeSeconds) {
+        reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, {
+          ...this.security.cookieAttributes(REFRESH_COOKIE_PATH),
+          maxAge: tokens.refreshMaxAgeSeconds,
+        });
+      }
+      return { user };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) this.clearAuthCookies(reply);
+      throw err;
+    }
   }
 
   // ── Logout ──────────────────────────────────────────────────────────────────
@@ -115,82 +131,84 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Revoke refresh session' })
-  async logout(
-    @Body() dto: RefreshDto,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const token = this.extractRefreshToken(req, dto.refreshToken, false);
-    if (token) {
-      await this.authService.logout(token);
-    }
-    this.clearRefreshCookie(reply);
+  @ApiOperation({ summary: 'Вихід: відкликає сесію та очищає cookie' })
+  async logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    await this.authService.logout({
+      refreshToken: this.cookie(req, REFRESH_COOKIE),
+      accessToken: this.cookie(req, ACCESS_COOKIE),
+    });
+    this.clearAuthCookies(reply);
     return { message: 'Ви вийшли з акаунта' };
   }
 
   // ── Me ───────────────────────────────────────────────────────────────────────
 
   @Get('me')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current authenticated user' })
-  @ApiResponse({ status: 200, description: 'Returns user without passwordHash' })
+  @ApiOperation({ summary: 'Поточний користувач' })
+  @ApiResponse({ status: 200, description: 'Користувач без passwordHash' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getMe(@CurrentUser() user: UserPublic) {
     return this.authService.getMe(user.id);
   }
 
+  // ── Email verification / password reset ─────────────────────────────────────
+
   @Public()
   @Post('verify-email')
-  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify email with token' })
-  verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.authService.verifyEmail(dto.token);
+  @ApiOperation({ summary: 'Підтвердити email за токеном' })
+  verifyEmail(@Body() dto: VerifyEmailDto, @Req() req: FastifyRequest) {
+    return this.authService.verifyEmail(dto.token, this.meta(req));
+  }
+
+  @Public()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Повторно надіслати лист підтвердження (нейтральна відповідь)' })
+  resendVerification(@Body() dto: ResendVerificationDto, @Req() req: FastifyRequest) {
+    return this.authService.resendVerification(dto.email, dto.captchaToken, this.meta(req));
   }
 
   @Public()
   @Post('request-password-reset')
-  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request password reset email' })
-  requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
-    return this.authService.requestPasswordReset(dto.email);
+  @ApiOperation({ summary: 'Запит на скидання пароля (нейтральна відповідь)' })
+  requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() req: FastifyRequest) {
+    return this.authService.requestPasswordReset(dto.email, dto.captchaToken, this.meta(req));
   }
 
   @Public()
   @Post('reset-password')
-  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password with token' })
-  resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.token, dto.newPassword);
+  @ApiOperation({ summary: 'Скинути пароль за токеном' })
+  resetPassword(@Body() dto: ResetPasswordDto, @Req() req: FastifyRequest) {
+    return this.authService.resetPassword(dto.token, dto.newPassword, this.meta(req));
   }
 
-  // ── Cookie helpers ───────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  private setRefreshCookie(reply: FastifyReply, token: string): void {
-    reply.setCookie(REFRESH_COOKIE, token, {
-      ...COOKIE_BASE,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+  private meta(req: FastifyRequest): RequestMeta {
+    return { userAgent: req.headers['user-agent'], ipAddress: req.ip };
+  }
+
+  private cookie(req: FastifyRequest, name: string): string | undefined {
+    const value = (req.cookies as Record<string, string | undefined> | undefined)?.[name];
+    return value || undefined;
+  }
+
+  private setAuthCookies(reply: FastifyReply, tokens: IssuedTokens): void {
+    reply.setCookie(ACCESS_COOKIE, tokens.accessToken, {
+      ...this.security.cookieAttributes('/'),
+      maxAge: tokens.accessMaxAgeSeconds,
+    });
+    reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, {
+      ...this.security.cookieAttributes(REFRESH_COOKIE_PATH),
+      maxAge: tokens.refreshMaxAgeSeconds,
     });
   }
 
-  private clearRefreshCookie(reply: FastifyReply): void {
-    reply.clearCookie(REFRESH_COOKIE, { ...COOKIE_BASE });
-  }
-
-  private extractRefreshToken(
-    req: FastifyRequest,
-    bodyToken?: string,
-    required = true,
-  ): string {
-    const cookieToken = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
-    const token = cookieToken ?? bodyToken;
-    if (required && !token) {
-      throw new BadRequestException('Потрібен токен оновлення');
-    }
-    return token ?? '';
+  private clearAuthCookies(reply: FastifyReply): void {
+    reply.clearCookie(ACCESS_COOKIE, this.security.cookieAttributes('/'));
+    reply.clearCookie(REFRESH_COOKIE, this.security.cookieAttributes(REFRESH_COOKIE_PATH));
   }
 }

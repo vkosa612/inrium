@@ -4,7 +4,10 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { TooManyRequestsException } from '../security/rate-limit.service';
 import type { ApiErrorResponse } from '../types/api-response.type';
 
 function isProduction(): boolean {
@@ -54,16 +57,19 @@ function mapPrismaError(err: unknown): PrismaErrorResult {
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger('Exception');
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const reply = ctx.getResponse<{ code: (n: number) => { send: (b: unknown) => void } }>();
-    const request = ctx.getRequest<{ url: string }>();
+    const reply = ctx.getResponse<FastifyReply>();
+    const request = ctx.getRequest<FastifyRequest>();
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = isProduction()
       ? 'Внутрішня помилка сервера'
       : 'Internal server error';
     let error = 'Internal Server Error';
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -75,6 +81,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const obj = res as Record<string, unknown>;
         message = (obj.message as string | string[]) ?? message;
         error = (obj.error as string) ?? HttpStatus[statusCode] ?? 'Error';
+        if (typeof obj.code === 'string') code = obj.code;
+      }
+
+      if (exception instanceof TooManyRequestsException) {
+        reply.header('Retry-After', String(exception.retryAfterSeconds));
       }
 
       if (isProduction() && statusCode >= 500) {
@@ -83,10 +94,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (isPrismaError(exception)) {
       ({ statusCode, message, error } = mapPrismaError(exception));
     } else {
-      console.error('[INRIUM] Unhandled exception:', exception);
       if (isProduction()) {
         message = 'Внутрішня помилка сервера';
       }
+    }
+
+    if (statusCode >= 500) {
+      // Стек/текст помилки лише у серверному лозі (з requestId), не у відповіді.
+      this.logger.error(
+        `[${request.id}] ${request.method} ${request.url.split('?')[0]} → ${statusCode}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
     }
 
     const body: ApiErrorResponse = {
@@ -94,10 +112,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode,
       message,
       error,
-      path: request.url,
+      ...(code ? { code } : {}),
+      path: request.url.split('?')[0],
+      requestId: String(request.id),
       timestamp: new Date().toISOString(),
     };
 
-    reply.code(statusCode).send(body);
+    void reply.code(statusCode).send(body);
   }
 }

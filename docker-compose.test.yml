@@ -1,0 +1,23 @@
+# Ізольована БД ЛИШЕ для автотестів. Не пов'язана з dev/prod (інший порт, інший volume, tmpfs).
+# Облікові дані нижче — публічні тестові значення, не використовуйте їх ніде, крім тестів.
+#
+#   docker compose -f docker-compose.test.yml up -d --wait
+#   pnpm --filter @inrium/backend test
+#   docker compose -f docker-compose.test.yml down
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: inrium-postgres-test
+    environment:
+      POSTGRES_USER: inrium_test
+      POSTGRES_PASSWORD: inrium_test_password
+      POSTGRES_DB: inrium_test
+    ports:
+      - '127.0.0.1:55432:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U inrium_test -d inrium_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30

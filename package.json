@@ -17,5 +17,16 @@
   "engines": {
     "node": ">=20"
   },
+  "pnpm": {
+    "overrides": {
+      "fastify": ">=5.12.2 <6",
+      "fast-uri": ">=3.1.7 <4",
+      "brace-expansion@>=5 <5.0.11": ">=5.0.11",
+      "@fastify/busboy": ">=3.2.1 <4",
+      "postcss@<8.5.18": ">=8.5.18 <9",
+      "js-yaml@>=5 <5.4.1": ">=5.4.1 <6",
+      "deepmerge-ts@<8": ">=8.0.0 <9"
+    }
+  },
   "packageManager": "pnpm@9.15.9"
 }

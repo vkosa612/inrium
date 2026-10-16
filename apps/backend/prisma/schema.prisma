@@ -109,6 +109,12 @@ model Session {
   userId           String
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokenHash String
+  /// Усі refresh-токени одного входу (ротація) мають спільний familyId.
+  familyId         String
+  /// Коли цей токен було обміняно на наступний (ротація).
+  rotatedAt        DateTime?
+  /// id сесії-наступника (для безпечного паралельного refresh у grace-вікні).
+  replacedById     String?
   userAgent        String?
   ipAddress        String?
   expiresAt        DateTime
@@ -117,6 +123,7 @@ model Session {
   updatedAt        DateTime  @updatedAt
 
   @@index([userId])
+  @@index([familyId])
   @@index([expiresAt])
   @@index([revokedAt])
 }

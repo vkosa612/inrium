@@ -13,12 +13,26 @@ export interface UserPublic {
   updatedAt: Date;
 }
 
-export interface AuthTokens {
+/** Токени існують лише у HttpOnly cookie й ніколи не потрапляють у JSON. */
+export interface IssuedTokens {
   accessToken: string;
   refreshToken: string;
+  accessMaxAgeSeconds: number;
+  refreshMaxAgeSeconds: number;
 }
 
-export interface AuthResult extends AuthTokens {
+/** Результат login: cookie-токени + публічний користувач (для JSON). */
+export interface LoginResult {
+  tokens: IssuedTokens;
+  user: UserPublic;
+}
+
+/** Результат refresh. `tokens.refreshToken` порожній, якщо refresh вже ротовано паралельним запитом. */
+export interface RefreshResult {
+  tokens: Omit<IssuedTokens, 'refreshToken' | 'refreshMaxAgeSeconds'> & {
+    refreshToken: string | null;
+    refreshMaxAgeSeconds: number | null;
+  };
   user: UserPublic;
 }
 

@@ -9,7 +9,10 @@ export interface ApiErrorResponse {
   statusCode: number;
   message: string | string[];
   error: string;
+  /** Машинозчитуваний код (CSRF_INVALID, CAPTCHA_REQUIRED, …), якщо є. */
+  code?: string;
   path: string;
+  requestId?: string;
   timestamp: string;
 }
 

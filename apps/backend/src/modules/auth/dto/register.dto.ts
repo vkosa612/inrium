@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -10,6 +11,7 @@ import {
 export class RegisterDto {
   @ApiProperty({ example: 'player@example.com' })
   @IsEmail()
+  @MaxLength(254)
   email!: string;
 
   @ApiProperty({ example: 'StrongPass123!' })
@@ -26,4 +28,10 @@ export class RegisterDto {
   @MinLength(2)
   @MaxLength(64)
   displayName!: string;
+
+  @ApiPropertyOptional({ description: 'Токен CAPTCHA (якщо CAPTCHA_REQUIRED=true)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  captchaToken?: string;
 }

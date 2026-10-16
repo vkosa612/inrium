@@ -1,13 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class LoginDto {
-  @ApiProperty({ example: 'admin@inrium.local' })
+  @ApiProperty({ example: 'player@example.com' })
   @IsEmail()
+  @MaxLength(254)
   email!: string;
 
-  @ApiProperty({ example: 'Admin12345!' })
+  @ApiProperty()
   @IsString()
   @MaxLength(128)
   password!: string;
+
+  @ApiPropertyOptional({ description: 'Токен CAPTCHA (якщо CAPTCHA_REQUIRED=true)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  captchaToken?: string;
 }

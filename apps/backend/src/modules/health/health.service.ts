@@ -1,27 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+/** Мінімальний health: без версій, latency, імен хостів чи іншої внутрішньої інформації. */
 @Injectable()
 export class HealthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getHealth() {
-    let dbStatus: 'ok' | 'error' = 'ok';
-    let dbLatencyMs: number | null = null;
-
+  async getHealth(): Promise<{ status: 'ok' }> {
     try {
-      const start = Date.now();
       await this.prisma.$queryRaw`SELECT 1`;
-      dbLatencyMs = Date.now() - start;
     } catch {
-      dbStatus = 'error';
+      throw new ServiceUnavailableException('Service unavailable');
     }
-
-    return {
-      status: dbStatus === 'ok' ? 'ok' : 'degraded',
-      service: 'inrium-backend',
-      timestamp: new Date().toISOString(),
-      db: { status: dbStatus, latencyMs: dbLatencyMs },
-    };
+    return { status: 'ok' };
   }
 }

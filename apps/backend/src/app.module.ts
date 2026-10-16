@@ -4,6 +4,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { envValidationSchema } from './config/env.validation';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { CsrfGuard } from './common/security/csrf.guard';
+import { SecurityModule } from './common/security/security.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -27,6 +29,8 @@ import { PrismaModule } from './prisma/prisma.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      // Тести не повинні читати локальний .env (там можуть бути dev/prod значення).
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
       envFilePath: ['.env', '../../.env'],
       validationSchema: envValidationSchema,
       validationOptions: { allowUnknown: true, abortEarly: false },
@@ -44,6 +48,7 @@ import { PrismaModule } from './prisma/prisma.module';
       }),
     }),
 
+    SecurityModule,
     PrismaModule,
     EmailModule,
     AuthModule,
@@ -69,6 +74,7 @@ import { PrismaModule } from './prisma/prisma.module';
       inject: [Reflector],
     },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
