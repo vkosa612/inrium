@@ -86,9 +86,10 @@ model User {
   bio       String?
 
   emailVerified              Boolean   @default(false)
-  emailVerificationToken     String?
+  /// sha256 одноразового токена (сам токен у БД не зберігається). Унікальність = швидкий пошук + цілісність.
+  emailVerificationToken     String?   @unique
   emailVerificationExpiresAt DateTime?
-  passwordResetToken         String?
+  passwordResetToken         String?   @unique
   passwordResetExpiresAt     DateTime?
 
   createdAt DateTime @default(now())

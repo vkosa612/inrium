@@ -4,6 +4,7 @@ node_modules/
 
 # build
 dist/
+dist-scripts/
 .next/
 out/
 build/
@@ -12,6 +13,8 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.prod
 
 # logs
 *.log
@@ -32,6 +35,10 @@ Thumbs.db
 postgres_data/
 uploads/*
 !uploads/.gitkeep
+apps/backend/uploads/
+backups/
+test-results/
+playwright-report/
 
 # misc
 *.tsbuildinfo

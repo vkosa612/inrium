@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-scripts",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "incremental": false,
+    "noEmit": false,
+    "types": ["node"]
+  },
+  "include": ["scripts/**/*.ts", "prisma/seed.ts", "prisma/seed-guard.ts"],
+  "exclude": ["node_modules", "dist", "dist-scripts", "test"]
+}

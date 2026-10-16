@@ -7,6 +7,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { resolveSeedPlan } from './seed-guard';
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
@@ -50,50 +51,57 @@ async function upsertContent(data: {
 async function main() {
   console.log('🌱 Starting INRIUM seed...\n');
 
-  // ── Users ────────────────────────────────────────────────────────────────────
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin@inrium.local';
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'Admin12345!';
-  const editorEmail = process.env.SEED_EDITOR_EMAIL ?? 'editor@inrium.local';
-  const editorPassword = process.env.SEED_EDITOR_PASSWORD ?? 'Editor12345!';
+  // Захист: у production seed не запускається з демо-паролями/службовими адресами (див. seed-guard.ts).
+  const plan = resolveSeedPlan();
+  if (plan.production) {
+    console.log('⚠️  PRODUCTION seed: лише адміністратор, довідник, стартовий контент (без демо-ігор/спільнот).\n');
+  }
 
+  // ── Users ────────────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
+    where: { email: plan.admin.email },
     update: {},
     create: {
-      email: adminEmail,
-      passwordHash: await bcrypt.hash(adminPassword, SALT_ROUNDS),
+      email: plan.admin.email,
+      passwordHash: await bcrypt.hash(plan.admin.password, SALT_ROUNDS),
       displayName: 'INRIUM Admin',
       role: UserRole.ADMIN,
+      emailVerified: true,
     },
   });
 
-  const editor = await prisma.user.upsert({
-    where: { email: editorEmail },
-    update: {},
-    create: {
-      email: editorEmail,
-      passwordHash: await bcrypt.hash(editorPassword, SALT_ROUNDS),
-      displayName: 'INRIUM Editor',
-      role: UserRole.EDITOR,
-    },
-  });
+  // Автор стартового контенту: редактор (якщо заданий) або адміністратор.
+  const editor = plan.editor
+    ? await prisma.user.upsert({
+        where: { email: plan.editor.email },
+        update: {},
+        create: {
+          email: plan.editor.email,
+          passwordHash: await bcrypt.hash(plan.editor.password, SALT_ROUNDS),
+          displayName: 'INRIUM Editor',
+          role: UserRole.EDITOR,
+          emailVerified: true,
+        },
+      })
+    : admin;
 
-  console.log(`✅ Users     : ${admin.email} (ADMIN), ${editor.email} (EDITOR)`);
+  console.log(`✅ Users     : ${admin.email} (ADMIN)${plan.editor ? `, ${editor.email} (EDITOR)` : ''}`);
 
-  const gmEmail = process.env.SEED_GM_EMAIL ?? 'gm@inrium.local';
-  const gmPassword = process.env.SEED_GM_PASSWORD ?? 'Gm12345!';
-  const gm = await prisma.user.upsert({
-    where: { email: gmEmail },
-    update: {},
-    create: {
-      email: gmEmail,
-      passwordHash: await bcrypt.hash(gmPassword, SALT_ROUNDS),
-      displayName: 'Demo Game Master',
-      role: UserRole.GAME_MASTER,
-      bio: 'Демо-майстер для тестових ігрових сесій.',
-    },
-  });
-  console.log(`✅ GM user   : ${gm.email} (GAME_MASTER)`);
+  const gm = plan.gm
+    ? await prisma.user.upsert({
+        where: { email: plan.gm.email },
+        update: {},
+        create: {
+          email: plan.gm.email,
+          passwordHash: await bcrypt.hash(plan.gm.password, SALT_ROUNDS),
+          displayName: 'Demo Game Master',
+          role: UserRole.GAME_MASTER,
+          bio: 'Демо-майстер для тестових ігрових сесій.',
+          emailVerified: true,
+        },
+      })
+    : null;
+  if (gm) console.log(`✅ GM user   : ${gm.email} (GAME_MASTER)`);
 
   // ── Categories ────────────────────────────────────────────────────────────────
   const catDefs = [
@@ -566,6 +574,12 @@ async function main() {
     });
   }
   console.log(`✅ Kits       : ${kitDefs.map((k) => k.title).join(', ')}`);
+
+  if (!plan.includeDemoGamesAndCommunities || !gm) {
+    console.log('ℹ️  Демо-ігри та демо-спільноти пропущено.');
+    console.log('\n🎉 Seed completed successfully!');
+    return;
+  }
 
   // ── Sample games ────────────────────────────────────────────────────────────
   const dndSystem = await prisma.gameSystem.findUnique({ where: { slug: 'dnd-5e' } });
