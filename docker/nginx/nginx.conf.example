@@ -1,48 +1,44 @@
-# Example Nginx reverse proxy for production INRIUM
-# Place on host with SSL certs (Let's Encrypt). Backend binds 127.0.0.1:4200, frontend :3000.
+# Приклад reverse proxy (nginx) для production INRIUM.
+# Весь публічний трафік іде ЛИШЕ на frontend (127.0.0.1:3000): він сам проксує /api/* та /uploads/* на backend
+# усередині docker-мережі. Backend і PostgreSQL назовні не публікуються.
+#
+# Топологія: клієнт → nginx → Next.js (frontend) → backend  ⇒ у .env встановіть TRUSTED_PROXY_HOPS=2.
+# (nginx додає реальний IP клієнта в X-Forwarded-For, Next.js додає IP nginx — backend бере IP на 2 хопи від кінця.)
 
 upstream inrium_frontend {
     server 127.0.0.1:3000;
+    keepalive 16;
 }
 
-upstream inrium_backend {
-    server 127.0.0.1:4200;
-}
+# Обмеження частоти на рівні проксі — додатковий шар поверх rate limit у застосунку.
+limit_req_zone $binary_remote_addr zone=inrium_auth:10m rate=10r/m;
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name inrium.example.com;
 
     ssl_certificate     /etc/letsencrypt/live/inrium.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/inrium.example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
 
+    # Узгоджено з лімітом завантаження зображень у застосунку (5 МБ + multipart-обгортка).
     client_max_body_size 6m;
+    server_tokens off;
 
-    # Frontend (Next.js)
+    # HSTS вмикайте лише після перевірки, що HTTPS працює стабільно.
+    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Чутливі auth-ендпоінти: додаткове обмеження на рівні nginx.
+    location ~ ^/api/auth/(login|register|resend-verification|request-password-reset|reset-password)$ {
+        limit_req zone=inrium_auth burst=10 nodelay;
+        proxy_pass http://inrium_frontend;
+        include /etc/nginx/inrium-proxy.conf;
+    }
+
     location / {
         proxy_pass http://inrium_frontend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Uploaded images via frontend proxy or direct backend static
-    location /uploads/ {
-        proxy_pass http://inrium_backend;
-        proxy_set_header Host $host;
-    }
-
-    # Optional: API through same origin (set NEXT_PUBLIC_API_URL=https://inrium.example.com/api)
-    location /api/ {
-        proxy_pass http://inrium_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        include /etc/nginx/inrium-proxy.conf;
     }
 }
 
@@ -51,3 +47,13 @@ server {
     server_name inrium.example.com;
     return 301 https://$host$request_uri;
 }
+
+# ── /etc/nginx/inrium-proxy.conf ────────────────────────────────────────────
+# proxy_http_version 1.1;
+# proxy_set_header Connection "";
+# proxy_set_header Host $host;
+# # Перезаписуємо, а не доповнюємо, заголовок від клієнта: інакше його можна підробити.
+# proxy_set_header X-Forwarded-For $remote_addr;
+# proxy_set_header X-Real-IP $remote_addr;
+# proxy_set_header X-Forwarded-Proto $scheme;
+# proxy_read_timeout 60s;

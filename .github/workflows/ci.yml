@@ -6,38 +6,138 @@ on:
   pull_request:
     branches: [main, master]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '9.15.9'
+
 jobs:
-  build:
+  backend:
+    name: Backend (lint, unit + integration tests, build)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # Ізольована БД лише для тестів (db-guard відмовиться працювати з БД без суфікса _test).
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: inrium_test
+          POSTGRES_PASSWORD: inrium_test_password
+          POSTGRES_DB: inrium_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U inrium_test -d inrium_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
-
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
 
-      - name: Install dependencies
+      - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck backend
+      - name: Build shared package
+        run: pnpm --filter @inrium/shared build
+
+      - name: Prisma generate
+        run: pnpm --filter @inrium/backend exec prisma generate
+
+      - name: Typecheck (src + tests)
         run: pnpm --filter @inrium/backend lint
 
-      - name: Typecheck frontend
-        run: pnpm --filter @inrium/frontend exec tsc --noEmit
+      - name: Tests (unit + integration on isolated Postgres)
+        run: pnpm --filter @inrium/backend test --runInBand
+        env:
+          TEST_DATABASE_URL: postgresql://inrium_test:inrium_test_password@127.0.0.1:55432/inrium_test?schema=public
 
       - name: Build backend
         run: pnpm --filter @inrium/backend build
 
-      - name: Build frontend
+      - name: Build ops scripts
+        run: pnpm --filter @inrium/backend build:scripts
+
+  frontend:
+    name: Frontend (lint, typecheck, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @inrium/shared build
+
+      - name: Lint
+        run: pnpm --filter @inrium/frontend lint
+
+      - name: Typecheck
+        run: pnpm --filter @inrium/frontend typecheck
+
+      - name: Tests
+        run: pnpm --filter @inrium/frontend test
+
+      - name: Build
         run: pnpm --filter @inrium/frontend build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:4200/api
+          NEXT_PUBLIC_API_URL: /api
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          BACKEND_URL: http://backend:4200/api
 
-      - name: Validate docker compose
-        run: docker compose config
+  docker:
+    name: Docker (compose config + image build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose config (dev)
+        run: docker compose config -q
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+
+      - name: Compose config (production overlay requires secrets)
+        # Негативна перевірка: без секретів prod-конфігурація має відхилятися.
+        run: |
+          if docker compose -f docker-compose.yml -f docker-compose.prod.yml config -q 2>/dev/null; then
+            echo "prod compose must fail without required secrets" >&2
+            exit 1
+          fi
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+
+      - name: Build images
+        run: |
+          touch .env
+          docker compose build
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci

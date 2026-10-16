@@ -44,3 +44,7 @@ playwright-report/
 *.tsbuildinfo
 coverage/
 .turbo/
+
+# backups
+backups/
+.tmp-backups/

@@ -1,0 +1,36 @@
+# Локальна розробка (підхоплюється автоматично `docker compose up`).
+# НЕ використовується у production: там запускайте з явним `-f docker-compose.yml -f docker-compose.prod.yml`.
+services:
+  postgres:
+    ports:
+      # Лише localhost — недоступно з LAN/WAN.
+      - '127.0.0.1:5432:5432'
+
+  backend:
+    ports:
+      - '127.0.0.1:4200:4200'
+
+  frontend:
+    ports: !override
+      - '${FRONTEND_BIND:-0.0.0.0}:${FRONTEND_PORT:-3000}:3000'
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    profiles:
+      - tools
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Локальна SMTP-пастка: листи не виходять назовні. UI: http://127.0.0.1:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    profiles:
+      - mail
+    ports:
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'

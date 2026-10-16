@@ -1,0 +1,39 @@
+# Production-накладка. Запуск (override-файл для розробки НЕ підхоплюється, бо файли задані явно):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build
+#
+# Усі секрети передаються через `.env` на сервері (не в репозиторії). Backend сам відхилить старт,
+# якщо конфігурація небезпечна (плейсхолдери секретів, http у CORS/SITE_URL, вимкнена верифікація пошти тощо).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+
+services:
+  postgres:
+    restart: always
+    logging: *logging
+
+  backend:
+    restart: always
+    logging: *logging
+    environment:
+      NODE_ENV: production
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      # За замовчуванням: reverse proxy (nginx/Caddy) + Next.js = 2 довірені хопи. Підлаштуйте під свою топологію.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-2}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET is required}
+      SITE_URL: ${SITE_URL:?SITE_URL is required (https://...)}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required (https://...)}
+      REQUIRE_EMAIL_VERIFICATION: 'true'
+
+  frontend:
+    restart: always
+    logging: *logging
+    environment:
+      NODE_ENV: production
+    ports: !override
+      # Публічний трафік іде лише через reverse proxy на хості.
+      - '${FRONTEND_BIND:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000'
