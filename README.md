@@ -29,8 +29,8 @@ docker compose up --build -d
 # 3. Adminer для роботи з БД (опційно, тільки local):
 docker compose --profile tools up -d
 
-# 4. Seed (перший раз або після reset БД):
-docker compose exec backend sh -c "cd /app/apps/backend && node_modules/.bin/ts-node -P prisma/tsconfig.seed.json prisma/seed.ts"
+# 4. Seed (перший раз або після reset БД; у контейнері вже зібраний скрипт):
+docker compose exec backend node dist-scripts/prisma/seed.js
 ```
 
 ### Логи та статус
@@ -43,23 +43,31 @@ docker compose logs frontend --tail=120
 
 ### Backup проєкту
 
-- **База:** `docker compose exec postgres pg_dump -U inrium inrium > backup.sql`
-- **Uploads:** скопіювати папку `./uploads` на хост
-- **Конфіг:** `.env` зберігати окремо (не в git)
+```bash
+scripts/backup.sh ./backups
+```
 
-### SMTP demo (локально)
+Томи `postgres_data` і `uploads_data`. `.env` зберігати окремо (не в git). Restore: `scripts/restore.sh` лише на ізольованому стенді.
 
-1. У `.env` вказати Gmail SMTP (див. `.env.example` — лише placeholder-и в repo).
-2. Якщо SMTP не налаштовано — посилання verify/reset з’являються в logs backend з префіксом `[dev-only]`.
-3. У production без SMTP backend логує попередження при старті.
+### SMTP локально
 
-### Документація RC
+```bash
+docker compose --profile mail up -d mailpit   # UI http://127.0.0.1:8025
+# .env: SMTP_HOST=mailpit  SMTP_PORT=1025
+```
+
+Без SMTP посилання verify/reset з’являються в logs backend з префіксом `[dev-only]` (не в production).
+
+### Документація
 
 | Файл | Опис |
 |------|------|
-| `PROJECT_STATUS.md` | Статус MVP, обмеження |
-| `MANUAL_TEST_CHECKLIST.md` | Ручні сценарії QA |
-| `PRODUCTION_CHECKLIST.md` | Pre-deploy production |
+| `PROJECT_STATUS.md` | Статус |
+| `docs/UI_HANDOFF.md` | Наступний етап UI |
+| `docs/SECURITY_IMPLEMENTATION.md` | Auth/CSRF |
+| `docs/DEPLOYMENT_READINESS.md` | Production checklist (код) |
+| `docs/EMAIL_PRODUCTION_SETUP.md` | SMTP/DNS |
+| `MANUAL_TEST_CHECKLIST.md` | Ручні сценарії |
 
 > **`.env` ніколи не комітити.** Перевірка: `git check-ignore -v .env`
 
@@ -90,8 +98,8 @@ docker compose logs frontend --tail=120
 
 | Порт | Сервіс | Відкривати? |
 |------|--------|-------------|
-| 3000 | Frontend (Next.js) | ✅ Так |
-| 4200 | Backend API | ⚠️ Тільки якщо потрібен прямий доступ |
+| 3000 | Frontend (Next.js) | ✅ Так (або лише через reverse proxy) |
+| 4200 | Backend API | ❌ Ні; браузер ходить на same-origin `/api` |
 | 5432 | PostgreSQL | ❌ Ніколи |
 | 8080 | Adminer | ❌ Ніколи |
 
@@ -102,17 +110,15 @@ docker compose logs frontend --tail=120
 NODE_ENV=production
 SWAGGER_ENABLED=false           # вимкнути Swagger docs
 CORS_ORIGIN=http://your-ip:3000 # дозволити тільки ваш фронтенд
-NEXT_PUBLIC_API_URL=http://your-ip:4200/api
+NEXT_PUBLIC_API_URL=/api        # Docker і так вшиває /api; не вказуйте :4200
 NEXT_PUBLIC_SITE_URL=http://your-ip:3000
-
-# Якщо хочеш захистити backend від прямого LAN-доступу:
-BACKEND_BIND=127.0.0.1          # backend слухає тільки localhost
+SITE_URL=http://your-ip:3000
 
 # Запустити:
 docker compose up --build -d
 ```
 
-> Якщо `BACKEND_BIND=127.0.0.1`, фронтенд і так зв'язується з backend через внутрішню Docker мережу (`http://backend:4200/api`). Браузер-запити через `NEXT_PUBLIC_API_URL` не потрібні, якщо всі API-запити йдуть через Server Components.
+> Backend у Docker слухає внутрішню мережу (`http://backend:4200/api`). Next.js проксує `/api` і `/uploads`. Не відкривайте порт 4200 назовні і не ставте `NEXT_PUBLIC_API_URL` на прямий URL backend: CSP `connect-src 'self'` заблокує такі запити, а cookies перестануть бути first-party.
 
 ### Перед публічним запуском — обов'язково
 
@@ -201,9 +207,8 @@ pnpm --filter @inrium/backend prisma:migrate     # prisma migrate dev
 pnpm --filter @inrium/backend prisma:seed        # prisma db seed
 pnpm --filter @inrium/backend prisma:studio      # Prisma Studio UI
 
-# або всередині контейнера:
-docker compose exec backend pnpm exec prisma migrate dev --name <назва>
-docker compose exec backend sh -c "cd /app/apps/backend && node_modules/.bin/ts-node -P prisma/tsconfig.seed.json prisma/seed.ts"
+# або всередині контейнера (prod-образ без ts-node):
+docker compose exec backend node dist-scripts/prisma/seed.js
 ```
 
 ## Структура проєкту
@@ -268,7 +273,7 @@ inrium/
 - [x] Глобальний пошук `/api/search`
 - [x] SEO: `generateMetadata`, canonical, OpenGraph, Twitter cards
 - [x] Sitemap (`/sitemap.xml`) та robots.txt
-- [x] Health check `GET /api/health` з DB latency
+- [x] Health check `GET /api/health` (мінімальний `{ status: "ok" }`)
 - [x] Rate limit: глобальний + суворіший для auth endpoints (10 req/min)
 - [x] Swagger умовно вимкнений через `SWAGGER_ENABLED=false`
 - [x] Postgres і Adminer тільки на `127.0.0.1` (не LAN/WAN)
@@ -287,13 +292,14 @@ inrium/
 - [x] SMTP integration for email verify / password reset (Gmail demo + dev logs)
 - [x] Dynamic homepage from HomePageBlock config
 - [x] MVP polish: українська локалізація, footer, media, sitemap
-- [x] Release Candidate docs (`PROJECT_STATUS.md`, `MANUAL_TEST_CHECKLIST.md`)
+- [x] Cookie auth + CSRF + CAPTCHA adapter + IDOR тести
+- [x] Legal drafts `/privacy`, `/terms`
+- [x] Документація технічної бази (`docs/*`)
 
-### 🔜 Наступні етапи (після RC)
+### 🔜 Далі
 
-- [ ] Production deploy (див. `PRODUCTION_CHECKLIST.md`)
-- [ ] Security phase (cookies, CSRF, CAPTCHA, email enforcement policy)
-- [ ] Object storage для uploads (S3/MinIO)
-- [ ] Image cropper / resize при upload
-- [ ] Redis для refresh tokens та rate limiting
-- [ ] Error tracking (Sentry або Glitchtip)
+- [ ] Авторські правки UI (`docs/UI_HANDOFF.md`)
+- [ ] Production: домен, HTTPS, SMTP, CAPTCHA keys (`docs/REMAINING_EXTERNAL_TASKS.md`)
+- [ ] Object storage / Redis — лише за потреби масштабу
+- [ ] Image cropper / resize
+- [ ] Error tracking DSN

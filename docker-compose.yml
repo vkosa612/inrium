@@ -64,8 +64,11 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
       args:
-        # Браузер звертається на same-origin /api (проксі Next.js) — cookie first-party, CORS не потрібен.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+        # Браузер ЗАВЖДИ ходить на same-origin `/api` (проксі Next.js → BACKEND_URL).
+        # Не підхоплюємо NEXT_PUBLIC_API_URL з .env: там інколи лишається
+        # http://localhost:4200/api для host-side pnpm, і тоді CSP connect-src 'self'
+        # блокує клієнтські fetch (Failed to fetch) + cookie стають third-party.
+        NEXT_PUBLIC_API_URL: /api
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
         # Внутрішня адреса backend: вбудовується в rewrites під час збірки.
         BACKEND_URL: http://backend:4200/api

@@ -66,7 +66,7 @@ jobs:
         run: pnpm --filter @inrium/backend lint
 
       - name: Tests (unit + integration on isolated Postgres)
-        run: pnpm --filter @inrium/backend test --runInBand
+        run: pnpm --filter @inrium/backend test -- --runInBand
         env:
           TEST_DATABASE_URL: postgresql://inrium_test:inrium_test_password@127.0.0.1:55432/inrium_test?schema=public
           MAILPIT_API_URL: http://127.0.0.1:18025
