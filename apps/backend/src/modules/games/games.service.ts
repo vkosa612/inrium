@@ -361,6 +361,10 @@ export class GamesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // Спочатку блокуємо гру: усі паралельні схвалення цієї гри виконуються послідовно,
+      // а статус заявки та кількість схвалених читаються вже під блокуванням.
+      await tx.$executeRaw`SELECT id FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
+
       const lockedApp = await tx.gameApplication.findFirst({
         where: { id: appId, gameId },
         include: { game: true },
@@ -370,8 +374,6 @@ export class GamesService {
       if (lockedApp.status !== GameApplicationStatus.PENDING) {
         throw new ConflictException('Заявку можна схвалити лише у статусі «Очікує рішення».');
       }
-
-      await tx.$executeRaw`SELECT id FROM "Game" WHERE id = ${gameId} FOR UPDATE`;
 
       const game = await tx.game.findUnique({ where: { id: gameId } });
       if (!game) throw new NotFoundException('Гру не знайдено');

@@ -1,3 +1,4 @@
+import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ContentStatus, ContentType } from '@prisma/client';
 import {
@@ -52,6 +53,7 @@ export class UpdateContentDto {
   @IsOptional()
   @IsString()
   @MaxLength(512)
+  @IsSafeImageUrl()
   coverImageUrl?: string;
 
   @ApiPropertyOptional()

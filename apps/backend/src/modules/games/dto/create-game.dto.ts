@@ -1,3 +1,4 @@
+import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { GameStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -54,5 +55,6 @@ export class CreateGameDto {
   @ApiPropertyOptional({ description: 'Cover image URL (/uploads/... or https://)' })
   @IsOptional()
   @IsString()
+  @IsSafeImageUrl()
   coverImageUrl?: string;
 }

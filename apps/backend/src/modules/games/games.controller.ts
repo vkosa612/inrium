@@ -10,7 +10,6 @@ import {
   Post,
   Query,
   Req,
-  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
@@ -20,6 +19,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { UserPublic } from '../auth/types/auth-response.type';
+import { readUploadedFile } from '../uploads/read-upload';
 import { ApplyGameDto } from './dto/apply-game.dto';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameQueryDto } from './dto/game-query.dto';
@@ -123,11 +123,7 @@ export class GamesController {
     @Req() req: FastifyRequest,
     @CurrentUser() user: UserPublic,
   ) {
-    const data = await req.file();
-    if (!data) {
-      throw new UnsupportedMediaTypeException('Expected multipart field "file"');
-    }
-    return this.gamesService.uploadCover(id, data, user);
+    return this.gamesService.uploadCover(id, await readUploadedFile(req), user);
   }
 
   @Post(':id/apply')

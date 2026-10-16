@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'Brave Adventurer' })
@@ -18,6 +19,7 @@ export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
   @IsOptional()
   @IsString()
-  @MaxLength(2048)
+  @MaxLength(512)
+  @IsSafeImageUrl()
   avatarUrl?: string;
 }

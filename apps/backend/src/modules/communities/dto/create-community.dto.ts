@@ -1,3 +1,4 @@
+import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
@@ -21,6 +22,7 @@ export class CreateCommunityDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @IsSafeImageUrl()
   coverImageUrl?: string;
 
   @ApiPropertyOptional({ default: true })

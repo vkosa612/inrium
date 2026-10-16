@@ -1,13 +1,9 @@
-import {
-  Controller,
-  Post,
-  Req,
-  UnsupportedMediaTypeException,
-} from '@nestjs/common';
+import { Controller, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import type { FastifyRequest } from 'fastify';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { readUploadedFile } from './read-upload';
 import { UploadsService } from './uploads.service';
 
 @ApiTags('uploads')
@@ -30,10 +26,6 @@ export class UploadsController {
     },
   })
   async uploadImage(@Req() req: FastifyRequest) {
-    const data = await req.file();
-    if (!data) {
-      throw new UnsupportedMediaTypeException('Expected multipart field "file"');
-    }
-    return this.uploadsService.saveImage(data);
+    return this.uploadsService.saveImage(await readUploadedFile(req));
   }
 }

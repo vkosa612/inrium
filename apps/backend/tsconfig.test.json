@@ -6,5 +6,5 @@
     "noEmit": true,
     "incremental": false
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*", "test/**/*", "scripts/**/*"]
 }
