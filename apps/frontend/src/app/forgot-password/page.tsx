@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
+import { CaptchaWidget, isCaptchaEnabled } from '@/components/CaptchaWidget';
 import { apiRequestPasswordReset } from '@/lib/api';
 
 export default function ForgotPasswordPage() {
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -15,13 +18,19 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError('');
     setMessage('');
+    if (isCaptchaEnabled() && !captchaToken) {
+      setError('Підтвердіть, що ви не робот.');
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await apiRequestPasswordReset(email.trim());
+      const res = await apiRequestPasswordReset(email.trim(), captchaToken ?? undefined);
       setMessage(res.message || 'Якщо email існує, ми надіслали інструкції.');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Помилка запиту');
     } finally {
       setLoading(false);
+      setCaptchaReset((n) => n + 1);
     }
   }
 
@@ -47,6 +56,7 @@ export default function ForgotPasswordPage() {
               style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 14, boxSizing: 'border-box' }}
             />
           </div>
+          <CaptchaWidget onToken={setCaptchaToken} resetKey={captchaReset} />
           {error && <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, fontSize: 13, color: '#f87171' }}>{error}</div>}
           {message && <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, fontSize: 13, color: '#10b981' }}>{message}</div>}
           <button type="submit" disabled={loading} style={{ padding: 11, background: loading ? 'var(--border)' : 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}>

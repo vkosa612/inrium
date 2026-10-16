@@ -125,7 +125,7 @@ export default function KitForm({ initial }: KitFormProps) {
       <div>
         <label style={labelStyle}>Ігрова система</label>
         <select style={inputStyle} value={systemId} onChange={(e) => setSystemId(e.target.value)}>
-          <option value="">— без прив'язки —</option>
+          <option value="">— без прив&apos;язки —</option>
           {systems.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
         </select>
       </div>

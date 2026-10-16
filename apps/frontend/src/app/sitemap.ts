@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { apiGetSitemap } from '@/lib/api';
+import { SITE_URL } from '@/lib/site-config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+const BASE_URL = SITE_URL;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [

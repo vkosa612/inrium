@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -70,7 +71,7 @@ export default function Header() {
       {/* Main header */}
       <div className="mx-auto flex max-w-7xl items-center gap-8 px-4 py-3">
         {/* Logo */}
-        <a href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
+        <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
           <span
             style={{
               fontSize: 24,
@@ -82,7 +83,7 @@ export default function Header() {
           >
             INRIUM
           </span>
-        </a>
+        </Link>
 
         {/* Nav */}
         <nav style={{ display: 'flex', gap: 2, flex: 1 }}>

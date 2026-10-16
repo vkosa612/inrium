@@ -4,16 +4,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { CaptchaWidget, isCaptchaEnabled } from '@/components/CaptchaWidget';
 import { apiRegister } from '@/lib/api';
 
 export default function RegisterPage() {
-  const { user, isLoading, login } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [doneMessage, setDoneMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const captchaOn = isCaptchaEnabled();
 
   useEffect(() => {
     if (!isLoading && user) router.replace('/');
@@ -26,13 +31,17 @@ export default function RegisterPage() {
     if (password.length < 8) { setError('Пароль: мінімум 8 символів'); return; }
     if (!/(?=.*[A-Za-z])(?=.*\d)/.test(password)) { setError('Пароль повинен містити літери та цифри'); return; }
 
+    if (captchaOn && !captchaToken) { setError('Підтвердіть, що ви не робот.'); return; }
+
     setSubmitting(true);
     try {
-      const result = await apiRegister(email, password, displayName);
-      login(result);
-      router.push('/');
+      // Сервер відповідає однаково незалежно від того, чи email уже зареєстровано (захист від перебору).
+      const result = await apiRegister(email.trim(), password, displayName.trim(), captchaToken ?? undefined);
+      setDoneMessage(result.message || 'Запит прийнято. Перевірте пошту та увійдіть.');
+      setPassword('');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Помилка реєстрації');
+      setCaptchaReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -88,6 +97,20 @@ export default function RegisterPage() {
           padding: '36px 32px',
         }}
       >
+        {doneMessage ? (
+          <div data-testid="register-done">
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
+              Запит прийнято
+            </h1>
+            <p style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: 20 }}>
+              {doneMessage}
+            </p>
+            <Link href="/login" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 14 }}>
+              Перейти до входу →
+            </Link>
+          </div>
+        ) : (
+          <>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
           Реєстрація
         </h1>
@@ -145,6 +168,8 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          <CaptchaWidget onToken={setCaptchaToken} resetKey={captchaReset} />
+
           {error && (
             <div style={{
               padding: '10px 14px',
@@ -177,9 +202,15 @@ export default function RegisterPage() {
           </button>
 
           <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-            Реєструючись, ви погоджуєтесь з умовами використання платформи
+            Реєструючись, ви погоджуєтесь з{' '}
+            <Link href="/terms" style={{ color: 'var(--accent)', textDecoration: 'none' }}>умовами використання</Link>{' '}
+            та{' '}
+            <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none' }}>політикою приватності</Link>{' '}
+            платформи (чернетки документів).
           </p>
         </form>
+          </>
+        )}
       </div>
     </div>
   );

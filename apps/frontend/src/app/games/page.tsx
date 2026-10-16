@@ -124,7 +124,6 @@ export default async function GamesPage({ searchParams }: Props) {
   const page = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   let items: GameListItem[] = [];
-  let total = 0;
   let totalPages = 1;
   let hasNextPage = false;
   let hasPrevPage = false;
@@ -132,7 +131,6 @@ export default async function GamesPage({ searchParams }: Props) {
   try {
     const result = await apiGetGames({ search, page, limit: ITEMS_PER_PAGE });
     items = result.items;
-    total = result.total;
     totalPages = result.totalPages;
     hasNextPage = result.hasNextPage ?? false;
     hasPrevPage = result.hasPrevPage ?? false;

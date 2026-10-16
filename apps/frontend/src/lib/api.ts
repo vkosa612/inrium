@@ -1,59 +1,18 @@
 /**
- * API client for INRIUM backend.
+ * Типізований API-клієнт INRIUM. Транспорт (cookie, CSRF, refresh) — у `./http`.
  *
- * Server-side (RSC): uses BACKEND_URL (internal Docker network or localhost).
- * Client-side: uses NEXT_PUBLIC_API_URL (browser-accessible).
+ * Серверні компоненти: BACKEND_URL (внутрішня мережа). Браузер: same-origin `/api` (NEXT_PUBLIC_API_URL).
+ * Токени автентифікації в JavaScript недоступні (HttpOnly cookie).
  */
+import {
+  ApiRequestError,
+  apiFetch,
+  apiFetchAuth,
+  apiUploadFile,
+  invalidateCsrfToken,
+} from './http';
 
-function getBaseUrl(): string {
-  if (typeof window === 'undefined') {
-    // Server-side: prefer internal Docker URL
-    return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4200/api';
-  }
-  // Client-side: always use public URL
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4200/api';
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  timestamp: string;
-}
-
-interface ApiError {
-  success: false;
-  statusCode: number;
-  message: string;
-  error: string;
-}
-
-async function apiFetch<T>(
-  path: string,
-  options?: RequestInit,
-): Promise<T> {
-  const url = `${getBaseUrl()}${path}`;
-
-  const headers: Record<string, string> = {
-    ...((options?.headers as Record<string, string> | undefined) ?? {}),
-  };
-  if (options?.body !== undefined && options?.body !== null && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  const body = await res.json() as ApiResponse<T> | ApiError;
-
-  if (!res.ok || !body.success) {
-    const err = body as ApiError;
-    throw new Error(err.message ?? `API error ${res.status}`);
-  }
-
-  return (body as ApiResponse<T>).data;
-}
+export { ApiRequestError, apiFetchAuth };
 
 // ─── Content ─────────────────────────────────────────────────────────────────
 
@@ -145,57 +104,55 @@ export interface AuthUser {
   createdAt?: string;
 }
 
-export interface AuthResult {
-  accessToken: string;
-  refreshToken: string;
-  user: AuthUser;
-}
+/** Код помилки входу, коли email не підтверджено. */
+export const EMAIL_NOT_VERIFIED_CODE = 'EMAIL_NOT_VERIFIED';
 
-export async function apiLogin(email: string, password: string): Promise<AuthResult> {
-  return apiFetch<AuthResult>('/auth/login', {
+/** Вхід: сервер ставить HttpOnly cookie, у тілі — лише користувач. */
+export async function apiLogin(
+  email: string,
+  password: string,
+  captchaToken?: string,
+): Promise<AuthUser> {
+  const res = await apiFetch<{ user: AuthUser }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(captchaToken ? { captchaToken } : {}) }),
   });
+  invalidateCsrfToken(); // CSRF-токен прив'язаний до сесії
+  return res.user;
 }
 
+/** Реєстрація: сервер завжди відповідає нейтрально (не розкриває, чи існує email); автологіну немає. */
 export async function apiRegister(
   email: string,
   password: string,
   displayName: string,
-): Promise<AuthResult> {
-  return apiFetch<AuthResult>('/auth/register', {
+  captchaToken?: string,
+): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, displayName }),
+    body: JSON.stringify({ email, password, displayName, ...(captchaToken ? { captchaToken } : {}) }),
   });
 }
 
-export async function apiLogout(refreshToken: string): Promise<void> {
-  await apiFetch<{ message: string }>('/auth/logout', {
+export async function apiLogout(): Promise<void> {
+  try {
+    await apiFetch<{ message: string }>('/auth/logout', { method: 'POST' });
+  } finally {
+    invalidateCsrfToken();
+  }
+}
+
+export async function apiResendVerification(
+  email: string,
+  captchaToken?: string,
+): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/resend-verification', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify({ email, ...(captchaToken ? { captchaToken } : {}) }),
   });
 }
 
-/**
- * Authenticated fetch — attaches Bearer token from localStorage.
- * Client-side only (reads localStorage).
- */
-export function apiFetchAuth<T>(path: string, options?: RequestInit): Promise<T> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('inrium_access_token')
-      : null;
-
-  return apiFetch<T>(path, {
-    ...options,
-    headers: {
-      ...options?.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-}
-
-/** Fetch current user from backend using stored access token. */
+/** Поточний користувач (за cookie). Кидає ApiRequestError(401), якщо сесії немає. */
 export async function apiGetMe(): Promise<AuthUser> {
   return apiFetchAuth<AuthUser>('/auth/me');
 }
@@ -244,10 +201,13 @@ export async function apiVerifyEmail(token: string): Promise<{ message: string }
   });
 }
 
-export async function apiRequestPasswordReset(email: string): Promise<{ message: string }> {
+export async function apiRequestPasswordReset(
+  email: string,
+  captchaToken?: string,
+): Promise<{ message: string }> {
   return apiFetch<{ message: string }>('/auth/request-password-reset', {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, ...(captchaToken ? { captchaToken } : {}) }),
   });
 }
 
@@ -336,74 +296,23 @@ export function resolveAbsoluteMediaUrl(url: string | null | undefined): string 
 
 /** Upload cover image (ADMIN/EDITOR). Do not set Content-Type — browser sets multipart boundary. */
 export async function apiUploadImage(file: File): Promise<UploadImageResult> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('inrium_access_token')
-      : null;
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const res = await fetch(`${getBaseUrl()}/uploads/image`, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+  return apiUploadFile<UploadImageResult>('/uploads/image', file, {
+    401: 'Увійдіть в акаунт ADMIN/EDITOR для завантаження зображень',
+    403: 'Недостатньо прав для завантаження зображень',
+    413: 'Файл занадто великий (макс. 5 MB)',
+    415: 'Дозволені лише JPG, PNG або WebP',
   });
-
-  const body = await res.json() as ApiResponse<UploadImageResult> | ApiError;
-
-  if (res.status === 401) {
-    throw new Error('Увійдіть в акаунт ADMIN/EDITOR для завантаження зображень');
-  }
-  if (res.status === 403) {
-    throw new Error('Недостатньо прав для завантаження зображень');
-  }
-  if (res.status === 413) {
-    throw new Error('Файл занадто великий (макс. 5 MB)');
-  }
-  if (res.status === 415) {
-    throw new Error('Дозволені лише JPG, PNG або WebP');
-  }
-  if (!res.ok || !body.success) {
-    const err = body as ApiError;
-    throw new Error(err.message ?? `Не вдалося завантажити (${res.status})`);
-  }
-
-  return (body as ApiResponse<UploadImageResult>).data;
 }
 
 /** Upload game cover (GAME_MASTER owner or ADMIN). */
 export async function apiUploadGameCover(gameId: string, file: File): Promise<UploadImageResult> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('inrium_access_token')
-      : null;
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const res = await fetch(`${getBaseUrl()}/games/${gameId}/cover`, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+  const result = await apiUploadFile<{ upload: UploadImageResult }>(`/games/${gameId}/cover`, file, {
+    401: 'Увійдіть в акаунт',
+    403: 'Недостатньо прав для завантаження обкладинки',
+    413: 'Файл занадто великий (макс. 5 MB)',
+    415: 'Дозволені лише JPG, PNG або WebP',
   });
-
-  const body = await res.json() as ApiResponse<{ upload: UploadImageResult }> | ApiError;
-
-  if (res.status === 401) throw new Error('Увійдіть в акаунт');
-  if (res.status === 403) throw new Error('Недостатньо прав для завантаження обкладинки');
-  if (res.status === 413) throw new Error('Файл занадто великий (макс. 5 MB)');
-  if (res.status === 415) throw new Error('Дозволені лише JPG, PNG або WebP');
-  if (!res.ok || !body.success) {
-    const err = body as ApiError;
-    throw new Error(err.message ?? `Не вдалося завантажити (${res.status})`);
-  }
-
-  return (body as ApiResponse<{ upload: UploadImageResult }>).data.upload;
+  return result.upload;
 }
 
 // ─── CMS (Admin only) ─────────────────────────────────────────────────────────
@@ -491,22 +400,7 @@ export async function apiUpdateContent(
 }
 
 export async function apiDeleteContent(id: string): Promise<void> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('inrium_access_token')
-      : null;
-  const url = `${getBaseUrl()}/content/${id}`;
-  const res = await fetch(url, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok && res.status !== 204) {
-    const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error((body as ApiError).message ?? `Не вдалося видалити (${res.status})`);
-  }
+  await apiFetchAuth<void>(`/content/${id}`, { method: 'DELETE' });
 }
 
 // ─── Game Systems ─────────────────────────────────────────────────────────────
@@ -583,15 +477,7 @@ export async function apiUpdateSystem(id: string, payload: UpdateSystemPayload):
 }
 
 export async function apiDeleteSystem(id: string): Promise<void> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
-  const res = await fetch(`${getBaseUrl()}/systems/${id}`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-  if (!res.ok && res.status !== 204) {
-    const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error((body as ApiError).message ?? `Не вдалося видалити (${res.status})`);
-  }
+  await apiFetchAuth<void>(`/systems/${id}`, { method: 'DELETE' });
 }
 
 // ─── Kits ─────────────────────────────────────────────────────────────────────
@@ -659,15 +545,7 @@ export async function apiUpdateKit(id: string, payload: UpdateKitPayload): Promi
 }
 
 export async function apiDeleteKit(id: string): Promise<void> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
-  const res = await fetch(`${getBaseUrl()}/kits/${id}`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-  if (!res.ok && res.status !== 204) {
-    const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error((body as ApiError).message ?? `Не вдалося видалити (${res.status})`);
-  }
+  await apiFetchAuth<void>(`/kits/${id}`, { method: 'DELETE' });
 }
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
@@ -910,15 +788,7 @@ export async function apiUpdateGame(id: string, payload: UpdateGamePayload): Pro
 }
 
 export async function apiDeleteGame(id: string): Promise<void> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
-  const res = await fetch(`${getBaseUrl()}/games/${id}`, {
-    method: 'DELETE',
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-  if (!res.ok && res.status !== 204) {
-    const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error(body.message ?? `Не вдалося видалити (${res.status})`);
-  }
+  await apiFetchAuth<void>(`/games/${id}`, { method: 'DELETE' });
 }
 
 export async function apiCancelGameApplication(gameId: string, appId: string): Promise<GameApplication> {
@@ -1044,13 +914,5 @@ export async function apiUpdateCommunity(
 }
 
 export async function apiDeleteCommunity(id: string): Promise<void> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('inrium_access_token') : null;
-  const res = await fetch(`${getBaseUrl()}/communities/${id}`, {
-    method: 'DELETE',
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-  if (!res.ok && res.status !== 204) {
-    const body = await res.json().catch(() => ({})) as ApiError;
-    throw new Error(body.message ?? `Не вдалося видалити (${res.status})`);
-  }
+  await apiFetchAuth<void>(`/communities/${id}`, { method: 'DELETE' });
 }

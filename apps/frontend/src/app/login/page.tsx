@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { apiLogin } from '@/lib/api';
+import { CaptchaWidget, isCaptchaEnabled } from '@/components/CaptchaWidget';
+import { apiLogin, apiResendVerification, ApiRequestError, EMAIL_NOT_VERIFIED_CODE } from '@/lib/api';
 import { safeNextPath } from '@/lib/auth-redirect';
 
 function LoginForm() {
@@ -17,6 +18,11 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const captchaOn = isCaptchaEnabled();
 
   useEffect(() => {
     const msg = sessionStorage.getItem('inrium_flash_message');
@@ -33,15 +39,37 @@ function LoginForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setResendMessage('');
+    setNeedsVerification(false);
+    if (captchaOn && !captchaToken) {
+      setError('Підтвердіть, що ви не робот.');
+      return;
+    }
     setSubmitting(true);
     try {
-      const result = await apiLogin(email, password);
-      login(result);
+      const authUser = await apiLogin(email.trim(), password, captchaToken ?? undefined);
+      login(authUser);
       router.push(nextPath);
     } catch (err: unknown) {
+      if (err instanceof ApiRequestError && err.code === EMAIL_NOT_VERIFIED_CODE) {
+        setNeedsVerification(true);
+      }
       setError(err instanceof Error ? err.message : 'Помилка входу');
+      setCaptchaReset((n) => n + 1);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    setResendMessage('');
+    try {
+      const res = await apiResendVerification(email.trim(), captchaToken ?? undefined);
+      setResendMessage(res.message);
+    } catch (err: unknown) {
+      setResendMessage(err instanceof Error ? err.message : 'Не вдалося надіслати лист');
+    } finally {
+      setCaptchaReset((n) => n + 1);
     }
   }
 
@@ -124,28 +152,28 @@ function LoginForm() {
             </div>
           )}
 
+          <CaptchaWidget onToken={setCaptchaToken} resetKey={captchaReset} />
+
           {error && <ErrorBox>{error}</ErrorBox>}
+
+          {needsVerification && (
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              <button
+                type="button"
+                onClick={() => void handleResend()}
+                disabled={!email.trim() || (captchaOn && !captchaToken)}
+                style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }}
+              >
+                Надіслати лист підтвердження ще раз
+              </button>
+              {resendMessage && <p style={{ marginTop: 8, color: '#10b981' }}>{resendMessage}</p>}
+            </div>
+          )}
 
           <SubmitButton loading={submitting}>
             {submitting ? 'Вхід...' : 'Увійти'}
           </SubmitButton>
         </form>
-
-        <div
-          style={{
-            marginTop: 24,
-            padding: '12px 14px',
-            background: 'rgba(167,139,250,0.06)',
-            border: '1px solid rgba(167,139,250,0.15)',
-            borderRadius: 8,
-          }}
-        >
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 500 }}>Тестові акаунти:</p>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span>admin@inrium.local / Admin12345!</span>
-            <span>editor@inrium.local / Editor12345!</span>
-          </div>
-        </div>
       </div>
     </div>
   );

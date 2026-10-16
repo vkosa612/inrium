@@ -10,6 +10,7 @@ export const REFRESH_COOKIE_PATH = '/api/auth';
 
 /** Коди помилок, за якими клієнт може відрізнити сценарії. */
 export const ErrorCodes = {
+  AuthRequired: 'AUTH_REQUIRED',
   CsrfInvalid: 'CSRF_INVALID',
   OriginNotAllowed: 'ORIGIN_NOT_ALLOWED',
   CaptchaRequired: 'CAPTCHA_REQUIRED',

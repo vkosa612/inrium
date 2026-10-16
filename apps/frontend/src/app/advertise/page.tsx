@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import StaticInfoPage from '@/components/StaticInfoPage';
+import { CONTACTS } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,9 +18,16 @@ export default function AdvertisePage() {
         Усі публікації проходять модерацію редакцією.
       </p>
       <p style={{ marginTop: 16 }}>
-        Для обговорення розміщення напишіть на{' '}
-        <a href="mailto:ads@inrium.local" style={{ color: '#f7971f' }}>ads@inrium.local</a>{' '}
-        або скористайтесь сторінкою <a href="/contacts" style={{ color: '#f7971f' }}>Контакти</a>.
+        {CONTACTS.adsEmail ? (
+          <>
+            Для обговорення розміщення напишіть на{' '}
+            <a href={`mailto:${CONTACTS.adsEmail}`} style={{ color: '#f7971f' }}>{CONTACTS.adsEmail}</a>{' '}
+            або скористайтесь сторінкою{' '}
+          </>
+        ) : (
+          <>Адреса для рекламних запитів ще не вказана. Скористайтесь сторінкою </>
+        )}
+        <Link href="/contacts" style={{ color: '#f7971f' }}>Контакти</Link>.
       </p>
     </StaticInfoPage>
   );

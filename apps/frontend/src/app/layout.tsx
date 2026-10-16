@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import { SITE_URL } from '@/lib/site-config';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+const BASE_URL = SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -19,7 +20,6 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@inrium_ua',
   },
   robots: { index: true, follow: true },
 };

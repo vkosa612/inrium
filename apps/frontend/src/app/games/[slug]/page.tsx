@@ -7,10 +7,11 @@ import GameApplyButton from '@/components/GameApplyButton';
 import MarkdownContent from '@/components/MarkdownContent';
 import { apiGetGameBySlug, resolveMediaUrl } from '@/lib/api';
 import { recruitmentStatusLabel } from '@/lib/game-labels';
+import { SITE_URL } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://inrium.ua';
+const BASE_URL = SITE_URL;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

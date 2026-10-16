@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 const FOOTER_LINKS = {
   Платформа: [
     { label: 'Головна', href: '/' },
@@ -17,6 +19,8 @@ const FOOTER_LINKS = {
     { label: 'Про INRIUM', href: '/about' },
     { label: 'Контакти', href: '/contacts' },
     { label: 'Реклама', href: '/advertise' },
+    { label: 'Умови використання', href: '/terms' },
+    { label: 'Політика приватності', href: '/privacy' },
   ],
 };
 
@@ -40,7 +44,7 @@ export default function Footer() {
         >
           {/* Brand */}
           <div>
-            <a
+            <Link
               href="/"
               style={{ textDecoration: 'none', display: 'block', marginBottom: 12 }}
             >
@@ -54,7 +58,7 @@ export default function Footer() {
               >
                 INRIUM
               </span>
-            </a>
+            </Link>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 200 }}>
               Портал для настільних рольових ігор. Знайди свою пригоду.
             </p>
@@ -78,7 +82,7 @@ export default function Footer() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {links.map((link) => (
                   <li key={link.label}>
-                    <a
+                    <Link
                       href={link.href}
                       style={{
                         fontSize: 13,
@@ -94,7 +98,7 @@ export default function Footer() {
                       }}
                     >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

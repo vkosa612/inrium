@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { useAuth } from '@/context/AuthContext';
 import { apiAdminUpdateUserRole, apiGetAdminUsers, type AdminUser, type AuthUser } from '@/lib/api';
-import { roleLabel, userStatusLabel } from '@/lib/labels';
+import { userStatusLabel } from '@/lib/labels';
 
 const ROLE_LABEL: Record<string, string> = {
   PLAYER: 'Гравець',

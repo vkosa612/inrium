@@ -24,12 +24,10 @@ export default async function CommunitiesPage({ searchParams }: Props) {
   let totalPages = 1;
   let hasNextPage = false;
   let hasPrevPage = false;
-  let total = 0;
 
   try {
     const result = await apiGetCommunities({ search: sp.search, page, limit: 12 });
     items = result.items;
-    total = result.total;
     totalPages = result.totalPages;
     hasNextPage = result.hasNextPage ?? false;
     hasPrevPage = result.hasPrevPage ?? false;

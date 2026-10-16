@@ -20,7 +20,6 @@ import {
   type BookmarkItem,
   type MyGameApplication,
 } from '@/lib/api';
-import { clearAuth } from '@/lib/auth-storage';
 import { APPLICATION_STATUS_COLOR, APPLICATION_STATUS_LABEL, formatGameDate } from '@/lib/game-labels';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -80,7 +79,7 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 export default function ProfilePageClient() {
-  const { user: ctxUser, isLoading: authLoading, updateUser, logout } = useAuth();
+  const { user: ctxUser, updateUser, logout } = useAuth();
   const router = useRouter();
 
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -181,7 +180,7 @@ export default function ProfilePageClient() {
         password: deletePassword,
         confirmation: deleteConfirmation,
       });
-      clearAuth();
+      await logout(); // cookie очищає сервер; повідомляємо інші вкладки
       sessionStorage.setItem('inrium_flash_message', 'Акаунт видалено.');
       router.replace('/login');
     } catch (err) {
