@@ -884,6 +884,23 @@ export async function apiAdminUpdateUserRole(userId: string, role: AuthUser['rol
   });
 }
 
+// ─── Admin dashboard stats ────────────────────────────────────────────────────
+
+export interface AdminStats {
+  content: { total: number; published: number; drafts: number; news: number; articles: number };
+  systems: number;
+  kits: number;
+  communities: number;
+  games: number;
+  /** null для редактора: кількість акаунтів бачить лише ADMIN. */
+  users: { total: number; blocked: number } | null;
+  generatedAt: string;
+}
+
+export async function apiGetAdminStats(): Promise<AdminStats> {
+  return apiFetchAuth<AdminStats>('/admin/stats');
+}
+
 // ─── Admin communities ────────────────────────────────────────────────────────
 
 export async function apiGetAdminCommunities(): Promise<Community[]> {

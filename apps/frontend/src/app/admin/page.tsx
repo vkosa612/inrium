@@ -1,18 +1,38 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { apiGetAdminStats, type AdminStats } from '@/lib/api';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel } from '@/lib/labels';
 
-const STAT_CARDS = [
-  { label: 'Матеріалів', value: '—', icon: '📄', color: '#a78bfa' },
-  { label: 'Новин', value: '—', icon: '📰', color: '#f59e0b' },
-  { label: 'Статей', value: '—', icon: '✍️', color: '#ec4899' },
-  { label: 'Користувачів', value: '—', icon: '👥', color: '#10b981' },
-];
+interface StatCard {
+  label: string;
+  value: string;
+  icon: string;
+  color: string;
+}
+
+function buildStatCards(stats: AdminStats | null): StatCard[] {
+  const fmt = (n: number | undefined | null) => (typeof n === 'number' ? String(n) : '—');
+  const cards: StatCard[] = [
+    { label: 'Матеріалів', value: fmt(stats?.content.total), icon: '📄', color: '#a78bfa' },
+    { label: 'Новин', value: fmt(stats?.content.news), icon: '📰', color: '#f59e0b' },
+    { label: 'Статей', value: fmt(stats?.content.articles), icon: '✍️', color: '#ec4899' },
+    { label: 'Чернеток', value: fmt(stats?.content.drafts), icon: '📝', color: '#60a5fa' },
+    { label: 'Ігрових систем', value: fmt(stats?.systems), icon: '🎲', color: '#34d399' },
+    { label: 'Наборів', value: fmt(stats?.kits), icon: '📦', color: '#fbbf24' },
+    { label: 'Ігор', value: fmt(stats?.games), icon: '🗓️', color: '#f472b6' },
+  ];
+  // Кількість акаунтів бачить лише адміністратор.
+  if (stats?.users) {
+    cards.push({ label: 'Користувачів', value: fmt(stats.users.total), icon: '👥', color: '#10b981' });
+  }
+  return cards;
+}
 
 const QUICK_LINKS = [
   { label: 'Контент', desc: 'Новини, статті та матеріали', href: '/admin/content', icon: '📋', soon: false },
@@ -21,12 +41,32 @@ const QUICK_LINKS = [
   { label: 'Користувачі', desc: 'Ролі та акаунти', href: '/admin/users', icon: '👤', soon: false },
   { label: 'Спільноти', desc: 'Керування спільнотами', href: '/admin/communities', icon: '👥', soon: false },
   { label: 'Головна сторінка', desc: 'Блоки та виділений контент', href: '/admin/home-blocks', icon: '🏠', soon: false },
-  { label: 'Налаштування', desc: 'Конфігурація платформи', href: '/admin/settings', icon: '⚙️', soon: true },
 ];
+
+// Розділи, доступні лише ADMIN (редактору не показуємо посилання, що ведуть на Доступ заборонено).
+const ADMIN_ONLY_LINKS = new Set(['/admin/users', '/admin/communities']);
 
 function AdminDashboardContent() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [statsError, setStatsError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiGetAdminStats()
+      .then((data) => {
+        if (!cancelled) setStats(data);
+      })
+      .catch(() => {
+        if (!cancelled) setStatsError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!user) return null;
+  const statCards = buildStatCards(stats);
 
   return (
     <>
@@ -66,12 +106,12 @@ function AdminDashboardContent() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: 12,
               marginBottom: 32,
             }}
           >
-            {STAT_CARDS.map((card) => (
+            {statCards.map((card) => (
               <div
                 key={card.label}
                 style={{
@@ -92,9 +132,11 @@ function AdminDashboardContent() {
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '-20px 0 32px' }}>
-            Детальна статистика буде додана пізніше.
-          </p>
+          {statsError && (
+            <p role="alert" style={{ fontSize: 12, color: '#f87171', margin: '-20px 0 32px' }}>
+              Не вдалося завантажити статистику. Спробуйте оновити сторінку.
+            </p>
+          )}
 
           {/* ── Quick links ───────────────────────────────────────────── */}
           <div style={{ marginBottom: 12 }}>
@@ -102,7 +144,7 @@ function AdminDashboardContent() {
               Розділи
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              {QUICK_LINKS.map((link) => {
+              {QUICK_LINKS.filter((link) => user.role === 'ADMIN' || !ADMIN_ONLY_LINKS.has(link.href)).map((link) => {
                 const inner = (
                   <>
                     {link.soon && (

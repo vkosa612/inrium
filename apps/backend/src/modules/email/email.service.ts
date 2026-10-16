@@ -81,10 +81,11 @@ export class EmailService implements OnModuleInit {
 
   private safeSmtpError(err: unknown): string {
     // Не логуємо SMTP-відповіді повністю (можуть містити адреси/дані); лише код і коротке повідомлення.
-    if (err instanceof Error) {
-      const code = (err as Error & { code?: string }).code;
-      return code ? `${code}: ${err.message.slice(0, 200)}` : err.message.slice(0, 200);
-    }
+    // Duck typing: AggregateError (ECONNREFUSED на кількох адресах) може бути з іншого realm і не проходити instanceof.
+    const e = err as { code?: unknown; message?: unknown } | null;
+    const code = typeof e?.code === 'string' ? e.code : '';
+    const message = typeof e?.message === 'string' ? e.message.slice(0, 200) : '';
+    if (code || message) return code ? `${code}${message ? `: ${message}` : ''}` : message;
     return 'Невідома помилка SMTP';
   }
 

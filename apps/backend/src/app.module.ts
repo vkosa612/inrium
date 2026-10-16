@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { CommunitiesModule } from './modules/communities/communities.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { ContentModule } from './modules/content/content.module';
 import { GamesModule } from './modules/games/games.module';
 import { HealthModule } from './modules/health/health.module';
@@ -64,6 +65,7 @@ import { PrismaModule } from './prisma/prisma.module';
     GamesModule,
     HomeBlocksModule,
     CommunitiesModule,
+    AdminModule,
   ],
 
   providers: [

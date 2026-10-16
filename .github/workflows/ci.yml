@@ -37,6 +37,12 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Локальна SMTP-пастка для інтеграційного тесту пошти (реальний SMTP-обмін без зовнішньої доставки).
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 11025:1025
+          - 18025:8025
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -63,6 +69,8 @@ jobs:
         run: pnpm --filter @inrium/backend test --runInBand
         env:
           TEST_DATABASE_URL: postgresql://inrium_test:inrium_test_password@127.0.0.1:55432/inrium_test?schema=public
+          MAILPIT_API_URL: http://127.0.0.1:18025
+          MAILPIT_SMTP_PORT: '11025'
 
       - name: Build backend
         run: pnpm --filter @inrium/backend build
@@ -107,7 +115,7 @@ jobs:
           BACKEND_URL: http://backend:4200/api
 
   docker:
-    name: Docker (compose config + image build)
+    name: Docker (compose config checks)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [backend, frontend]
@@ -133,11 +141,63 @@ jobs:
           POSTGRES_PASSWORD: ci
           POSTGRES_DB: ci
 
-      - name: Build images
+  e2e:
+    name: E2E (Docker stack + API smoke + Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [backend, frontend]
+    env:
+      E2E_PORT: '3300'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Generate throwaway .env (CI only, no real secrets)
         run: |
-          touch .env
-          docker compose build
+          rnd() { node -e "console.log(require('crypto').randomBytes(36).toString('base64url'))"; }
+          PW="$(rnd)"
+          {
+            echo "NODE_ENV=development"
+            echo "POSTGRES_USER=ci"
+            echo "POSTGRES_PASSWORD=${PW}"
+            echo "POSTGRES_DB=ci"
+            echo "DATABASE_URL=postgresql://ci:${PW}@postgres:5432/ci?schema=public"
+            echo "CORS_ORIGIN=http://localhost:${E2E_PORT}"
+            echo "SITE_URL=http://localhost:${E2E_PORT}"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:${E2E_PORT}"
+            echo "JWT_ACCESS_SECRET=$(rnd)$(rnd)"
+            echo "JWT_REFRESH_SECRET=$(rnd)$(rnd)"
+            echo "CSRF_SECRET=$(rnd)$(rnd)"
+            echo "TRUSTED_PROXY_HOPS=1"
+            echo "FRONTEND_PORT=${E2E_PORT}"
+          } > .env
+
+      - name: Build and start stack
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: API smoke (real HTTP through the frontend proxy)
+        run: node scripts/smoke-api.mjs "http://localhost:${E2E_PORT}"
+
+      - name: Install dependencies and Playwright browser
+        run: |
+          pnpm install --frozen-lockfile --filter @inrium/frontend...
+          pnpm --filter @inrium/frontend exec playwright install --with-deps chromium
+
+      - name: Browser e2e
+        run: pnpm --filter @inrium/frontend e2e
         env:
-          POSTGRES_USER: ci
-          POSTGRES_PASSWORD: ci
-          POSTGRES_DB: ci
+          E2E_BASE_URL: http://localhost:3300
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v

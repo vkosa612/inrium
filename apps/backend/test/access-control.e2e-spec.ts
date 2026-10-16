@@ -88,6 +88,7 @@ describe('Контроль доступу (permission matrix + IDOR/BOLA)', () =
       { name: 'GET /systems/admin/list', method: 'GET', url: () => '/api/systems/admin/list', allowed: ['editor', 'admin'] },
       { name: 'GET /kits/admin/list', method: 'GET', url: () => '/api/kits/admin/list', allowed: ['editor', 'admin'] },
       { name: 'GET /home-blocks/admin/list', method: 'GET', url: () => '/api/home-blocks/admin/list', allowed: ['editor', 'admin'] },
+      { name: 'GET /admin/stats', method: 'GET', url: () => '/api/admin/stats', allowed: ['editor', 'admin'] },
       { name: 'POST /content', method: 'POST', url: () => '/api/content', body: () => ({ title: 'Матеріал', type: 'NEWS', content: 'Текст' }), allowed: ['editor', 'admin'] },
       { name: 'GET /auth/me', method: 'GET', url: () => '/api/auth/me', allowed: ['player', 'gm', 'editor', 'admin'] },
       { name: 'GET /bookmarks', method: 'GET', url: () => '/api/bookmarks', allowed: ['player', 'gm', 'editor', 'admin'] },
