@@ -150,7 +150,7 @@ curl http://localhost:4200/api/docs
 
 ## Завантаження зображень (Cover upload)
 
-CMS дозволяє ADMIN/EDITOR завантажувати обкладинки для content, systems і kits.
+CMS дозволяє ADMIN/EDITOR завантажувати обкладинки для content і systems.
 
 | Параметр | Значення |
 |----------|----------|
@@ -186,7 +186,7 @@ CMS дозволяє ADMIN/EDITOR завантажувати обкладинк�
 | `DELETE /api/bookmarks/:id` | Видалити свою закладку |
 | `GET /api/bookmarks/check?targetType=&targetId=` | Перевірити, чи збережено |
 
-**Frontend:** `/profile` — редагування профілю, зміна пароля, список «Збережене». Кнопка «Зберегти» на detail pages content/help/systems/kits.
+**Frontend:** `/profile` — редагування профілю, зміна пароля, список «Збережене». Кнопка «Зберегти» на detail pages content/help/systems.
 
 ---
 
@@ -265,8 +265,8 @@ inrium/
 - [x] Docker Compose: postgres, backend, frontend (adminer тільки через `--profile tools`)
 - [x] Backend: NestJS + Fastify, Prisma ORM, JWT auth, RBAC
 - [x] Auth: register/login/refresh/logout/me з httpOnly cookie
-- [x] CMS Admin: CRUD для content, systems, kits
-- [x] Content API: news, articles, help, systems, kits (публічні + admin)
+- [x] CMS Admin: CRUD для content, systems
+- [x] Content API: news, articles, help, systems (публічні + admin)
 - [x] Markdown render (`react-markdown`)
 - [x] Пагінація для всіх list-сторінок
 - [x] Фільтри (category, tag, genre, complexity, system)
@@ -280,7 +280,7 @@ inrium/
 - [x] MarkdownEditor у CMS (toolbar + preview)
 - [x] Cover image upload (local storage, `/api/uploads/image`)
 - [x] User profile edit + change password (`/profile`, `/api/users/me`)
-- [x] Bookmarks for content/help/systems/kits
+- [x] Bookmarks for content/help/systems
 - [x] Games / Sessions API + `/games` + apply flow
 - [x] Public profiles `/users/[id]`
 - [x] Communities API + `/communities`

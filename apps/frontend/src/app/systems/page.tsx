@@ -5,6 +5,8 @@ import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
 import PaginationWrapper from '@/components/PaginationWrapper';
 import { apiGetSystems, resolveMediaUrl, type GameSystem } from '@/lib/api';
+import CoverImage from '@/components/CoverImage';
+import { coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,8 +33,13 @@ function SystemCard({ system }: { system: GameSystem }) {
     <Link href={`/systems/${system.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {imageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageSrc} alt={system.title} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8 }} />
+          <CoverImage
+            src={imageSrc}
+            alt={system.title}
+            focus={coverFocusFromEntity(system)}
+            height={140}
+            radius={8}
+          />
         ) : (
           <div style={{ width: '100%', height: 100, borderRadius: 8, background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(245,158,11,0.08) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>
             🎲

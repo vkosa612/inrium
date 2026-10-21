@@ -6,6 +6,7 @@ import type { GameSystemFull, CreateSystemPayload, ContentStatus } from '@/lib/a
 import { apiCreateSystem, apiUpdateSystem } from '@/lib/api';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import ImageUpload from '@/components/ImageUpload';
+import { coverFocusFromEntity, coverFocusToPayload } from '@/lib/cover-focus';
 
 const STATUS_OPTIONS: { value: ContentStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Чернетка' },
@@ -50,6 +51,7 @@ export default function SystemForm({ initial }: SystemFormProps) {
   const [genre, setGenre] = useState(initial?.genre ?? '');
   const [tags, setTags] = useState((initial?.tags ?? []).join(', '));
   const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? '');
+  const [coverFocus, setCoverFocus] = useState(() => coverFocusFromEntity(initial));
   const [status, setStatus] = useState<ContentStatus>(initial?.status ?? 'DRAFT');
   const [slugTouched, setSlugTouched] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -71,7 +73,10 @@ export default function SystemForm({ initial }: SystemFormProps) {
       title: title.trim(), slug: slug.trim() || undefined, description: description.trim(),
       shortDescription: shortDescription.trim() || undefined,
       complexity: complexity || undefined, genre: genre || undefined,
-      tags: parsedTags, imageUrl: imageUrl.trim() || undefined, status,
+      tags: parsedTags,
+      imageUrl: isEdit ? imageUrl.trim() : (imageUrl.trim() || undefined),
+      ...coverFocusToPayload(coverFocus),
+      status,
     };
 
     try {
@@ -143,6 +148,9 @@ export default function SystemForm({ initial }: SystemFormProps) {
         label="Зображення системи"
         value={imageUrl}
         onChange={setImageUrl}
+        adjustable
+        focus={coverFocus}
+        onFocusChange={setCoverFocus}
       />
 
       {error && <div style={{ padding: '10px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, fontSize: 13, color: '#ef4444' }}>{error}</div>}

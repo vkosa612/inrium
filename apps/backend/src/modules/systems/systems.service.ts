@@ -9,6 +9,12 @@ import { generateSlug } from '../content/utils/slug.util';
 import type { CreateSystemDto } from './dto/create-system.dto';
 import type { UpdateSystemDto } from './dto/update-system.dto';
 import type { AdminSystemQueryDto, SystemQueryDto } from './dto/system-query.dto';
+import {
+  COVER_FOCUS_SELECT,
+  coverFocusCreateData,
+  coverFocusUpdateData,
+  isClearedImageUrl,
+} from '../../common/dto/cover-focus.dto';
 
 const SYSTEM_SELECT = {
   id: true,
@@ -19,6 +25,7 @@ const SYSTEM_SELECT = {
   genre: true,
   tags: true,
   imageUrl: true,
+  ...COVER_FOCUS_SELECT,
   status: true,
   publishedAt: true,
   createdAt: true,
@@ -28,18 +35,6 @@ const SYSTEM_SELECT = {
 const SYSTEM_WITH_BODY = {
   ...SYSTEM_SELECT,
   description: true,
-  kits: {
-    where: { status: ContentStatus.PUBLISHED },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      shortDescription: true,
-      category: true,
-      priceText: true,
-      imageUrl: true,
-    },
-  },
 } as const;
 
 @Injectable()
@@ -134,6 +129,7 @@ export class SystemsService {
         genre: dto.genre,
         tags: dto.tags ?? [],
         imageUrl: dto.imageUrl,
+        ...coverFocusCreateData(dto),
         status,
         publishedAt: status === ContentStatus.PUBLISHED ? new Date() : undefined,
       },
@@ -169,7 +165,14 @@ export class SystemsService {
         ...(dto.complexity !== undefined && { complexity: dto.complexity }),
         ...(dto.genre !== undefined && { genre: dto.genre }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
-        ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
+        ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl || null }),
+        ...coverFocusUpdateData(dto, {
+          imageCleared: isClearedImageUrl(dto.imageUrl),
+          imageReplaced:
+            dto.imageUrl !== undefined &&
+            !isClearedImageUrl(dto.imageUrl) &&
+            dto.imageUrl !== existing.imageUrl,
+        }),
         ...(dto.status !== undefined && { status: dto.status }),
         ...(publishedAt && { publishedAt }),
       },

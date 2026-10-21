@@ -88,7 +88,7 @@ function AdminHomeBlocksContent() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {blocks.map((block) => (
+            {blocks.filter((block) => block.type !== 'KITS').map((block) => (
               <div
                 key={block.id}
                 style={{

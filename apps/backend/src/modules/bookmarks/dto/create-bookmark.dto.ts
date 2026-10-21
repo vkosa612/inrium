@@ -7,7 +7,7 @@ export class CreateBookmarkDto {
   @IsEnum(BookmarkTargetType)
   targetType!: BookmarkTargetType;
 
-  @ApiProperty({ description: 'ID of content item, system, or kit' })
+  @ApiProperty({ description: 'ID of content item, help page, or system' })
   @IsString()
   @MinLength(1)
   targetId!: string;

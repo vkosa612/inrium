@@ -164,6 +164,9 @@ model ContentItem {
   content String
 
   coverImageUrl  String?
+  coverPositionX Float   @default(0.5)
+  coverPositionY Float   @default(0.5)
+  coverScale     Float   @default(1)
   isFeatured     Boolean @default(false)
   showOnHomePage Boolean @default(false)
 
@@ -221,6 +224,9 @@ model Game {
   slug        String     @unique
   description String
   coverImageUrl String?
+  coverPositionX Float @default(0.5)
+  coverPositionY Float @default(0.5)
+  coverScale     Float @default(1)
   status      GameStatus @default(DRAFT)
   maxPlayers  Int?
   startsAt    DateTime?
@@ -263,7 +269,9 @@ model GameApplication {
   @@index([status])
 }
 
-// ─── Game Systems & Kits ───────────────────────────────────────────────────────
+// ─── Game Systems ──────────────────────────────────────────────────────────────
+// Таблиця Kit збережена без міграції (дані, FK GameSystem, закладки BookmarkTargetType.KIT).
+// Каталог наборів вилучено з продукту; DROP TABLE — лише після окремого дозволу.
 
 model GameSystem {
   id               String        @id @default(cuid())
@@ -275,6 +283,9 @@ model GameSystem {
   genre            String?
   tags             String[]
   imageUrl         String?
+  coverPositionX   Float         @default(0.5)
+  coverPositionY   Float         @default(0.5)
+  coverScale       Float         @default(1)
   status           ContentStatus @default(DRAFT)
   publishedAt      DateTime?
   createdAt        DateTime      @default(now())
@@ -324,6 +335,9 @@ model Community {
   slug          String   @unique
   description   String
   coverImageUrl String?
+  coverPositionX Float   @default(0.5)
+  coverPositionY Float   @default(0.5)
+  coverScale     Float   @default(1)
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

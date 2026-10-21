@@ -9,6 +9,7 @@ import ImageUpload from '@/components/ImageUpload';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import AdminRouteShell from '@/components/admin/AdminRouteShell';
 import { apiCreateCommunity, apiUpdateCommunity, type Community } from '@/lib/api';
+import { coverFocusFromEntity, coverFocusToPayload } from '@/lib/cover-focus';
 
 interface Props {
   initial?: Community;
@@ -22,6 +23,7 @@ function CommunityFormInner({ initial }: Props) {
   const [slug, setSlug] = useState(initial?.slug ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl ?? '');
+  const [coverFocus, setCoverFocus] = useState(() => coverFocusFromEntity(initial));
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +36,8 @@ function CommunityFormInner({ initial }: Props) {
       name: name.trim(),
       slug: slug.trim() || undefined,
       description: description.trim(),
-      coverImageUrl: coverImageUrl.trim() || undefined,
+      coverImageUrl: isEdit ? coverImageUrl.trim() : (coverImageUrl.trim() || undefined),
+      ...coverFocusToPayload(coverFocus),
       isPublished,
     };
     try {
@@ -94,7 +97,14 @@ function CommunityFormInner({ initial }: Props) {
             </label>
             <MarkdownEditor value={description} onChange={setDescription} minHeight={180} />
           </div>
-          <ImageUpload label="Обкладинка" value={coverImageUrl} onChange={setCoverImageUrl} />
+          <ImageUpload
+            label="Обкладинка"
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            adjustable
+            focus={coverFocus}
+            onFocusChange={setCoverFocus}
+          />
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-dim)' }}>
             <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
             Опубліковано

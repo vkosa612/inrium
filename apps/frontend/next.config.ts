@@ -83,6 +83,14 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${backendUrl}/:path*` }];
   },
+  async redirects() {
+    return [
+      { source: '/kits', destination: '/', permanent: true },
+      { source: '/kits/:slug', destination: '/', permanent: true },
+      { source: '/admin/kits', destination: '/admin', permanent: true },
+      { source: '/admin/kits/:path*', destination: '/admin', permanent: true },
+    ];
+  },
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },

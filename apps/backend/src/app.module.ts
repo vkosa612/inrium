@@ -20,7 +20,6 @@ import { HelpModule } from './modules/help/help.module';
 import { HomeBlocksModule } from './modules/home-blocks/home-blocks.module';
 import { HomeModule } from './modules/home/home.module';
 import { EmailModule } from './modules/email/email.module';
-import { KitsModule } from './modules/kits/kits.module';
 import { SystemsModule } from './modules/systems/systems.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { UsersModule } from './modules/users/users.module';
@@ -55,7 +54,6 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     ContentModule,
     SystemsModule,
-    KitsModule,
     HomeModule,
     HelpModule,
     HealthModule,

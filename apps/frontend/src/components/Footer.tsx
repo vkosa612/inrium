@@ -12,7 +12,6 @@ const FOOTER_LINKS = {
     { label: 'Новини', href: '/news' },
     { label: 'Статті', href: '/articles' },
     { label: 'Системи', href: '/systems' },
-    { label: 'Набори', href: '/kits' },
     { label: 'Довідка', href: '/help' },
   ],
   'Про нас': [

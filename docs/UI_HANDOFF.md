@@ -5,7 +5,7 @@
 ## Маршрути (App Router)
 
 ### Публічні
-`/`, `/news`, `/articles`, `/systems`, `/systems/[slug]`, `/kits`, `/kits/[slug]`, `/help`, `/help/[slug]`, `/content/[slug]`, `/games`, `/games/[slug]`, `/communities`, `/communities/[slug]`, `/users/[id]`, `/about`, `/contacts`, `/advertise`, `/privacy`, `/terms`, `/search`, `/sitemap.xml`, `/robots.txt`
+`/`, `/news`, `/articles`, `/systems`, `/systems/[slug]`, `/help`, `/help/[slug]`, `/content/[slug]`, `/games`, `/games/[slug]`, `/communities`, `/communities/[slug]`, `/users/[id]`, `/about`, `/contacts`, `/advertise`, `/privacy`, `/terms`, `/search`, `/sitemap.xml`, `/robots.txt`
 
 ### Auth
 `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`  
@@ -16,7 +16,7 @@
 
 ### Admin
 `/admin` — ADMIN або EDITOR (статистика users лише ADMIN)  
-`/admin/content`, `/admin/systems`, `/admin/kits`, `/admin/home-blocks` — ADMIN/EDITOR  
+`/admin/content`, `/admin/systems`, `/admin/home-blocks` — ADMIN/EDITOR  
 `/admin/users`, `/admin/communities` — ADMIN only  
 **Немає** `/admin/settings` (прибрано навмисно).
 
@@ -26,7 +26,7 @@
 |------|-----|
 | PLAYER | Ігри, заявки, профіль, закладки |
 | GAME_MASTER | + створення/керування **своїми** іграми |
-| EDITOR | CMS content/systems/kits/home-blocks + admin dashboard без users/communities |
+| EDITOR | CMS content/systems/home-blocks + admin dashboard без users/communities |
 | ADMIN | Усе CMS + users + communities + stats.users |
 
 Підписи: `src/lib/labels.ts`. Не показувати сирі enum у UI.

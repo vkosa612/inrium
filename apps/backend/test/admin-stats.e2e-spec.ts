@@ -5,7 +5,6 @@ import { createTestApp, TestContext } from './support/test-app';
 interface Stats {
   content: { total: number; published: number; drafts: number; news: number; articles: number };
   systems: number;
-  kits: number;
   communities: number;
   games: number;
   users: { total: number; blocked: number } | null;

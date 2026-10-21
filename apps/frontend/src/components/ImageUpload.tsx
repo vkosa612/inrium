@@ -2,6 +2,13 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { apiUploadImage, resolveMediaUrl, type UploadImageResult } from '@/lib/api';
+import CoverAdjustDialog from '@/components/CoverAdjustDialog';
+import CoverImage from '@/components/CoverImage';
+import {
+  COVER_ASPECT_RATIO,
+  DEFAULT_COVER_FOCUS,
+  type CoverFocus,
+} from '@/lib/cover-focus';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp';
 const MAX_MB = 5;
@@ -14,6 +21,11 @@ export interface ImageUploadProps {
   preview?: boolean;
   helperText?: string;
   uploadFn?: (file: File) => Promise<UploadImageResult>;
+  /** Редактор кадру обкладинки (не для аватарів). */
+  adjustable?: boolean;
+  focus?: CoverFocus;
+  onFocusChange?: (focus: CoverFocus) => void;
+  aspectRatio?: number;
 }
 
 export default function ImageUpload({
@@ -24,11 +36,17 @@ export default function ImageUpload({
   preview = true,
   helperText,
   uploadFn,
+  adjustable = false,
+  focus,
+  onFocusChange,
+  aspectRatio = COVER_ASPECT_RATIO,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const currentFocus = focus ?? DEFAULT_COVER_FOCUS;
 
   const previewSrc = resolveMediaUrl(value);
 
@@ -48,6 +66,7 @@ export default function ImageUpload({
       try {
         const result = uploadFn ? await uploadFn(file) : await apiUploadImage(file);
         onChange(result.url);
+        onFocusChange?.(DEFAULT_COVER_FOCUS);
       } catch (err) {
         setLocalError(err instanceof Error ? err.message : 'Помилка завантаження');
       } finally {
@@ -55,7 +74,7 @@ export default function ImageUpload({
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [onChange, uploadFn],
+    [onChange, onFocusChange, uploadFn],
   );
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -101,22 +120,33 @@ export default function ImageUpload({
       >
         {preview && previewSrc && (
           <div style={{ marginBottom: 16, position: 'relative' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewSrc}
-              alt="Попередній перегляд"
-              style={{
-                width: '100%',
-                maxHeight: 220,
-                objectFit: 'cover',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                display: 'block',
-              }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
+            {adjustable ? (
+              <CoverImage
+                src={previewSrc}
+                alt="Попередній перегляд"
+                focus={currentFocus}
+                aspectRatio={aspectRatio}
+                radius={8}
+                style={{ border: '1px solid var(--border)' }}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewSrc}
+                alt="Попередній перегляд"
+                style={{
+                  width: '100%',
+                  maxHeight: 220,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  display: 'block',
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
           </div>
         )}
 
@@ -147,11 +177,35 @@ export default function ImageUpload({
             {uploading ? 'Завантаження…' : previewSrc ? 'Замінити зображення' : 'Обрати файл'}
           </button>
 
+          {previewSrc && adjustable && onFocusChange && (
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => setAdjustOpen(true)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 8,
+                border: '1px solid var(--border-bright)',
+                background: 'transparent',
+                color: 'var(--text)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Налаштувати обкладинку
+            </button>
+          )}
+
           {previewSrc && (
             <button
               type="button"
               disabled={uploading}
-              onClick={() => { onChange(''); setLocalError(''); }}
+              onClick={() => {
+                onChange('');
+                onFocusChange?.(DEFAULT_COVER_FOCUS);
+                setLocalError('');
+              }}
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,
@@ -178,6 +232,19 @@ export default function ImageUpload({
           </p>
         )}
       </div>
+
+      {adjustOpen && previewSrc && onFocusChange && (
+        <CoverAdjustDialog
+          src={previewSrc}
+          initial={currentFocus}
+          aspectRatio={aspectRatio}
+          onApply={(next) => {
+            onFocusChange(next);
+            setAdjustOpen(false);
+          }}
+          onCancel={() => setAdjustOpen(false)}
+        />
+      )}
 
       {displayError && (
         <div style={{

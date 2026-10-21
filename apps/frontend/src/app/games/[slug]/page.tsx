@@ -7,6 +7,8 @@ import GameApplyButton from '@/components/GameApplyButton';
 import MarkdownContent from '@/components/MarkdownContent';
 import { apiGetGameBySlug, resolveMediaUrl } from '@/lib/api';
 import { recruitmentStatusLabel } from '@/lib/game-labels';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 import { SITE_URL } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
@@ -64,19 +66,13 @@ export default async function GameDetailPage({ params }: Props) {
         </Link>
 
         {coverSrc && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <CoverImage
             src={coverSrc}
             alt={game.title}
-            style={{
-              width: '100%',
-              maxHeight: 320,
-              objectFit: 'cover',
-              borderRadius: 12,
-              marginTop: 16,
-              marginBottom: 8,
-              border: '1px solid var(--border)',
-            }}
+            focus={coverFocusFromEntity(game)}
+            aspectRatio={COVER_ASPECT_RATIO}
+            radius={12}
+            style={{ marginTop: 16, marginBottom: 8, border: '1px solid var(--border)' }}
           />
         )}
 

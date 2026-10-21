@@ -1,4 +1,5 @@
 import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
+import { CoverFocusDto } from '../../../common/dto/cover-focus.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { GameStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -13,7 +14,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateGameDto {
+export class CreateGameDto extends CoverFocusDto {
   @ApiProperty()
   @IsString()
   @MinLength(3)

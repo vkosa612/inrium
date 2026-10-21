@@ -28,6 +28,12 @@ export interface ContentCategory {
   slug: string;
 }
 
+export interface CoverFocusFields {
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
+}
+
 export interface ContentItem {
   id: string;
   slug: string;
@@ -36,6 +42,9 @@ export interface ContentItem {
   title: string;
   excerpt: string | null;
   coverImageUrl: string | null;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   isFeatured: boolean;
   publishedAt: string | null;
   createdAt: string;
@@ -330,6 +339,9 @@ export interface ContentItemAdmin {
   excerpt: string | null;
   content: string;
   coverImageUrl: string | null;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   isFeatured: boolean;
   publishedAt: string | null;
   createdAt: string;
@@ -363,6 +375,9 @@ export interface CreateContentPayload {
   excerpt?: string;
   content: string;
   coverImageUrl?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   isFeatured?: boolean;
   categoryId?: string;
 }
@@ -414,6 +429,9 @@ export interface GameSystem {
   genre: string | null;
   tags: string[];
   imageUrl: string | null;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   status: ContentStatus;
   publishedAt: string | null;
   createdAt: string;
@@ -422,15 +440,6 @@ export interface GameSystem {
 
 export interface GameSystemFull extends GameSystem {
   description: string;
-  kits: Array<{
-    id: string;
-    slug: string;
-    title: string;
-    shortDescription: string | null;
-    category: string | null;
-    priceText: string | null;
-    imageUrl: string | null;
-  }>;
 }
 
 export interface SystemList extends PaginatedList {
@@ -446,6 +455,9 @@ export interface CreateSystemPayload {
   genre?: string;
   tags?: string[];
   imageUrl?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   status?: ContentStatus;
 }
 export type UpdateSystemPayload = Partial<CreateSystemPayload>;
@@ -480,81 +492,12 @@ export async function apiDeleteSystem(id: string): Promise<void> {
   await apiFetchAuth<void>(`/systems/${id}`, { method: 'DELETE' });
 }
 
-// ─── Kits ─────────────────────────────────────────────────────────────────────
-
-export interface Kit {
-  id: string;
-  slug: string;
-  title: string;
-  shortDescription: string | null;
-  category: string | null;
-  priceText: string | null;
-  imageUrl: string | null;
-  status: ContentStatus;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  system: { id: string; slug: string; title: string } | null;
-}
-
-export interface KitFull extends Kit {
-  description: string;
-}
-
-export interface KitList extends PaginatedList {
-  items: Kit[];
-}
-
-export interface CreateKitPayload {
-  title: string;
-  slug?: string;
-  description: string;
-  shortDescription?: string;
-  category?: string;
-  priceText?: string;
-  imageUrl?: string;
-  status?: ContentStatus;
-  systemId?: string;
-}
-export type UpdateKitPayload = Partial<CreateKitPayload>;
-
-export async function apiGetKits(query: { search?: string; systemId?: string; system?: string; category?: string; page?: number; limit?: number } = {}): Promise<KitList> {
-  const qs = buildQuery(query as Record<string, string | number | undefined>);
-  return apiFetch<KitList>(`/kits${qs}`, { cache: 'no-store' });
-}
-
-export async function apiGetKitBySlug(slug: string): Promise<KitFull> {
-  return apiFetch<KitFull>(`/kits/${slug}`, { cache: 'no-store' });
-}
-
-export async function apiGetAdminKitsList(query: { status?: ContentStatus; search?: string; page?: number } = {}): Promise<KitList> {
-  const qs = buildQuery(query as Record<string, string | number | undefined>);
-  return apiFetchAuth<KitList>(`/kits/admin/list${qs}`);
-}
-
-export async function apiGetKitByIdAdmin(id: string): Promise<KitFull> {
-  return apiFetchAuth<KitFull>(`/kits/admin/${id}`);
-}
-
-export async function apiCreateKit(payload: CreateKitPayload): Promise<KitFull> {
-  return apiFetchAuth<KitFull>('/kits', { method: 'POST', body: JSON.stringify(payload) });
-}
-
-export async function apiUpdateKit(id: string, payload: UpdateKitPayload): Promise<KitFull> {
-  return apiFetchAuth<KitFull>(`/kits/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
-}
-
-export async function apiDeleteKit(id: string): Promise<void> {
-  await apiFetchAuth<void>(`/kits/${id}`, { method: 'DELETE' });
-}
-
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
 export interface HomeStats {
   news: number;
   articles: number;
   systems: number;
-  kits: number;
   help: number;
   games: number;
 }
@@ -574,7 +517,6 @@ export interface HomeData {
   latestNews: ContentItem[];
   latestArticles: ContentItem[];
   systems: GameSystem[];
-  kits: Kit[];
   helpItems: HelpItem[];
   games: GameListItem[];
   stats: HomeStats;
@@ -601,7 +543,7 @@ export async function apiGetHome(): Promise<HomeData> {
 
 export interface SearchResult {
   id: string;
-  type: 'content' | 'help' | 'system' | 'kit';
+  type: 'content' | 'help' | 'system';
   subtype: string | null;
   title: string;
   slug: string;
@@ -644,7 +586,6 @@ export interface SitemapData {
   content: Array<{ slug: string; updatedAt: string }>;
   help: Array<{ slug: string; updatedAt: string }>;
   systems: Array<{ slug: string; updatedAt: string }>;
-  kits: Array<{ slug: string; updatedAt: string }>;
   games: Array<{ slug: string; updatedAt: string }>;
   communities: Array<{ slug: string; updatedAt: string }>;
 }
@@ -667,6 +608,9 @@ export interface GameListItem {
   title: string;
   description: string;
   coverImageUrl?: string | null;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   status: string;
   maxPlayers: number | null;
   startsAt: string | null;
@@ -755,6 +699,9 @@ export interface CreateGamePayload {
   startsAt?: string;
   gameSystemId?: string;
   coverImageUrl?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
 }
 
 export type UpdateGamePayload = Partial<CreateGamePayload>;
@@ -833,6 +780,9 @@ export interface Community {
   slug: string;
   description: string;
   coverImageUrl: string | null;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
@@ -889,7 +839,6 @@ export async function apiAdminUpdateUserRole(userId: string, role: AuthUser['rol
 export interface AdminStats {
   content: { total: number; published: number; drafts: number; news: number; articles: number };
   systems: number;
-  kits: number;
   communities: number;
   games: number;
   /** null для редактора: кількість акаунтів бачить лише ADMIN. */
@@ -912,6 +861,9 @@ export async function apiCreateCommunity(payload: {
   slug?: string;
   description: string;
   coverImageUrl?: string;
+  coverPositionX?: number;
+  coverPositionY?: number;
+  coverScale?: number;
   isPublished?: boolean;
 }): Promise<Community> {
   return apiFetchAuth<Community>('/communities', {
@@ -922,7 +874,16 @@ export async function apiCreateCommunity(payload: {
 
 export async function apiUpdateCommunity(
   id: string,
-  payload: Partial<{ name: string; slug: string; description: string; coverImageUrl: string; isPublished: boolean }>,
+  payload: Partial<{
+    name: string;
+    slug: string;
+    description: string;
+    coverImageUrl: string;
+    coverPositionX: number;
+    coverPositionY: number;
+    coverScale: number;
+    isPublished: boolean;
+  }>,
 ): Promise<Community> {
   return apiFetchAuth<Community>(`/communities/${id}`, {
     method: 'PATCH',

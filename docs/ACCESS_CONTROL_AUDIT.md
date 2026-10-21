@@ -20,7 +20,7 @@
 | Bookmarks | Лише `userId` з JWT |
 | `/api/users/:id` | Public safe fields; ACTIVE only |
 | `/api/users`, role patch | ADMIN only |
-| CMS (content/systems/kits/blocks) | ADMIN/EDITOR |
+| CMS (content/systems/blocks) | ADMIN/EDITOR |
 | Communities admin | ADMIN only |
 | Upload image | ADMIN/EDITOR; GM cover — через owned game |
 

@@ -1,4 +1,5 @@
 import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
+import { CoverFocusDto } from '../../../common/dto/cover-focus.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ContentStatus, ContentType } from '@prisma/client';
 import {
@@ -11,7 +12,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class UpdateContentDto {
+export class UpdateContentDto extends CoverFocusDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

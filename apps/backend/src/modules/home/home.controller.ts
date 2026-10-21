@@ -11,13 +11,13 @@ export class HomeController {
   constructor(private readonly homeService: HomeService) {}
 
   @Get('home')
-  @ApiOperation({ summary: 'Aggregated homepage data (featured, news, articles, systems, kits, stats)' })
+  @ApiOperation({ summary: 'Aggregated homepage data (featured, news, articles, systems, stats)' })
   getHome() {
     return this.homeService.getHome();
   }
 
   @Get('search')
-  @ApiOperation({ summary: 'Global search across content, systems and kits' })
+  @ApiOperation({ summary: 'Global search across content, help and systems' })
   search(@Query() query: SearchQueryDto) {
     return this.homeService.search(query.q ?? '');
   }

@@ -20,7 +20,6 @@ export const HOME_BLOCK_TYPE_LABEL: Record<string, string> = {
   LATEST_NEWS: 'Останні новини',
   GAMES: 'Ігрові сесії',
   GAME_SYSTEMS: 'Ігрові системи',
-  KITS: 'Набори',
   HELP: 'Довідка',
 };
 

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: 'INRIUM — платформа для настільних рольових ігор',
     template: '%s — INRIUM',
   },
-  description: 'INRIUM — знаходь ігри, ігрові системи, набори та матеріали для настільних рольових ігор.',
+  description: 'INRIUM — знаходь ігри, ігрові системи та матеріали для настільних рольових ігор.',
   openGraph: {
     siteName: 'INRIUM',
     type: 'website',

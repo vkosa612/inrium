@@ -19,6 +19,13 @@ import type { CreateGameDto } from './dto/create-game.dto';
 import type { GameQueryDto } from './dto/game-query.dto';
 import type { UpdateGameDto } from './dto/update-game.dto';
 import type { MultipartFile } from '@fastify/multipart';
+import {
+  COVER_FOCUS_DEFAULTS,
+  COVER_FOCUS_SELECT,
+  coverFocusCreateData,
+  coverFocusUpdateData,
+  isClearedImageUrl,
+} from '../../common/dto/cover-focus.dto';
 
 const GAME_SELECT = {
   id: true,
@@ -26,6 +33,7 @@ const GAME_SELECT = {
   title: true,
   description: true,
   coverImageUrl: true,
+  ...COVER_FOCUS_SELECT,
   status: true,
   maxPlayers: true,
   startsAt: true,
@@ -111,6 +119,7 @@ export class GamesService {
           title: true,
           description: true,
           coverImageUrl: true,
+          ...COVER_FOCUS_SELECT,
           status: true,
           maxPlayers: true,
           startsAt: true,
@@ -157,6 +166,7 @@ export class GamesService {
         title: true,
         description: true,
         coverImageUrl: true,
+        ...COVER_FOCUS_SELECT,
         status: true,
         maxPlayers: true,
         startsAt: true,
@@ -213,6 +223,7 @@ export class GamesService {
         masterId: user.id,
         gameSystemId: dto.gameSystemId || null,
         coverImageUrl: dto.coverImageUrl || null,
+        ...coverFocusCreateData(dto),
       },
       select: GAME_SELECT,
     });
@@ -241,12 +252,21 @@ export class GamesService {
         }),
         ...(dto.gameSystemId !== undefined && { gameSystemId: dto.gameSystemId || null }),
         ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl || null }),
+        ...coverFocusUpdateData(dto, {
+          imageCleared: isClearedImageUrl(dto.coverImageUrl),
+          imageReplaced:
+            dto.coverImageUrl !== undefined &&
+            !isClearedImageUrl(dto.coverImageUrl) &&
+            dto.coverImageUrl !== game.coverImageUrl,
+        }),
       },
       select: {
         id: true,
         slug: true,
         title: true,
         description: true,
+        coverImageUrl: true,
+        ...COVER_FOCUS_SELECT,
         status: true,
         maxPlayers: true,
         startsAt: true,
@@ -461,6 +481,8 @@ export class GamesService {
         slug: true,
         title: true,
         description: true,
+        coverImageUrl: true,
+        ...COVER_FOCUS_SELECT,
         status: true,
         maxPlayers: true,
         startsAt: true,
@@ -498,6 +520,8 @@ export class GamesService {
         slug: true,
         title: true,
         description: true,
+        coverImageUrl: true,
+        ...COVER_FOCUS_SELECT,
         status: true,
         maxPlayers: true,
         startsAt: true,
@@ -569,7 +593,7 @@ export class GamesService {
     const saved = await this.uploads.saveImage(file);
     const updated = await this.prisma.game.update({
       where: { id },
-      data: { coverImageUrl: saved.url },
+      data: { coverImageUrl: saved.url, ...COVER_FOCUS_DEFAULTS },
       select: GAME_SELECT,
     });
     const { _count, ...rest } = updated;

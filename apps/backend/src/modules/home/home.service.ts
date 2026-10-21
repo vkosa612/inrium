@@ -4,20 +4,16 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 const CONTENT_SELECT = {
   id: true, slug: true, type: true, title: true, excerpt: true,
-  coverImageUrl: true, isFeatured: true, publishedAt: true, createdAt: true,
+  coverImageUrl: true, coverPositionX: true, coverPositionY: true, coverScale: true,
+  isFeatured: true, publishedAt: true, createdAt: true,
   author: { select: { id: true, displayName: true } },
   category: { select: { id: true, name: true, slug: true } },
 } as const;
 
 const SYSTEM_SELECT = {
   id: true, slug: true, title: true, shortDescription: true,
-  complexity: true, genre: true, tags: true, imageUrl: true, publishedAt: true,
-} as const;
-
-const KIT_SELECT = {
-  id: true, slug: true, title: true, shortDescription: true,
-  category: true, priceText: true, imageUrl: true, publishedAt: true,
-  system: { select: { id: true, slug: true, title: true } },
+  complexity: true, genre: true, tags: true, imageUrl: true,
+  coverPositionX: true, coverPositionY: true, coverScale: true, publishedAt: true,
 } as const;
 
 const GAME_HOME_SELECT = {
@@ -26,6 +22,9 @@ const GAME_HOME_SELECT = {
   title: true,
   description: true,
   coverImageUrl: true,
+  coverPositionX: true,
+  coverPositionY: true,
+  coverScale: true,
   status: true,
   maxPlayers: true,
   startsAt: true,
@@ -59,7 +58,7 @@ export class HomeService {
   async getHome() {
     const PUBLISHED = ContentStatus.PUBLISHED;
 
-    const [featured, latestNews, latestArticles, systems, kits, helpItems, gamesRaw, counts] =
+    const [featured, latestNews, latestArticles, systems, helpItems, gamesRaw, counts] =
       await Promise.all([
         this.prisma.contentItem.findMany({
           where: { status: PUBLISHED, isFeatured: true, type: { not: ContentType.HELP_PAGE } },
@@ -85,12 +84,6 @@ export class HomeService {
           orderBy: { publishedAt: 'desc' },
           take: 4,
         }),
-        this.prisma.kit.findMany({
-          where: { status: PUBLISHED },
-          select: KIT_SELECT,
-          orderBy: { publishedAt: 'desc' },
-          take: 4,
-        }),
         this.prisma.contentItem.findMany({
           where: { status: PUBLISHED, type: ContentType.HELP_PAGE },
           select: HELP_SELECT,
@@ -107,7 +100,6 @@ export class HomeService {
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.NEWS } }),
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.ARTICLE } }),
           this.prisma.gameSystem.count({ where: { status: PUBLISHED } }),
-          this.prisma.kit.count({ where: { status: PUBLISHED } }),
           this.prisma.contentItem.count({ where: { status: PUBLISHED, type: ContentType.HELP_PAGE } }),
           this.prisma.game.count({
             where: { status: { in: [...PUBLIC_GAME_STATUSES] as GameStatus[] } },
@@ -121,21 +113,19 @@ export class HomeService {
       approvedPlayers: applications.map((a) => a.user.displayName),
     }));
 
-    const [newsCount, articlesCount, systemsCount, kitsCount, helpCount, gamesCount] = counts;
+    const [newsCount, articlesCount, systemsCount, helpCount, gamesCount] = counts;
 
     return {
       featured,
       latestNews,
       latestArticles,
       systems,
-      kits,
       helpItems,
       games,
       stats: {
         news: newsCount,
         articles: articlesCount,
         systems: systemsCount,
-        kits: kitsCount,
         help: helpCount,
         games: gamesCount,
       },
@@ -146,18 +136,13 @@ export class HomeService {
     const PUBLISHED = ContentStatus.PUBLISHED;
     const PUBLIC_GAME_STATUSES = ['OPEN', 'FULL', 'IN_PROGRESS', 'FINISHED'] as const;
 
-    const [contentItems, systems, kits, games, communities] = await Promise.all([
+    const [contentItems, systems, games, communities] = await Promise.all([
       this.prisma.contentItem.findMany({
         where: { status: PUBLISHED },
         select: { slug: true, type: true, updatedAt: true },
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.gameSystem.findMany({
-        where: { status: PUBLISHED },
-        select: { slug: true, updatedAt: true },
-        orderBy: { updatedAt: 'desc' },
-      }),
-      this.prisma.kit.findMany({
         where: { status: PUBLISHED },
         select: { slug: true, updatedAt: true },
         orderBy: { updatedAt: 'desc' },
@@ -182,7 +167,6 @@ export class HomeService {
         .filter((i) => i.type === ContentType.HELP_PAGE)
         .map((i) => ({ slug: i.slug, updatedAt: i.updatedAt.toISOString() })),
       systems: systems.map((s) => ({ slug: s.slug, updatedAt: s.updatedAt.toISOString() })),
-      kits: kits.map((k) => ({ slug: k.slug, updatedAt: k.updatedAt.toISOString() })),
       games: games.map((g) => ({ slug: g.slug, updatedAt: g.updatedAt.toISOString() })),
       communities: communities.map((c) => ({ slug: c.slug, updatedAt: c.updatedAt.toISOString() })),
     };
@@ -194,7 +178,7 @@ export class HomeService {
 
     const PUBLISHED = ContentStatus.PUBLISHED;
 
-    const [contentItems, systems, kits] = await Promise.all([
+    const [contentItems, systems] = await Promise.all([
       this.prisma.contentItem.findMany({
         where: {
           status: PUBLISHED,
@@ -212,22 +196,6 @@ export class HomeService {
         take: 10,
       }),
       this.prisma.gameSystem.findMany({
-        where: {
-          status: PUBLISHED,
-          OR: [
-            { title: { contains: query, mode: 'insensitive' } },
-            { shortDescription: { contains: query, mode: 'insensitive' } },
-            { slug: { contains: query, mode: 'insensitive' } },
-          ],
-        },
-        select: {
-          id: true, title: true, slug: true,
-          shortDescription: true, updatedAt: true,
-        },
-        orderBy: { publishedAt: 'desc' },
-        take: 6,
-      }),
-      this.prisma.kit.findMany({
         where: {
           status: PUBLISHED,
           OR: [
@@ -265,16 +233,6 @@ export class HomeService {
         excerpt: s.shortDescription ?? null,
         url: `/systems/${s.slug}`,
         updatedAt: s.updatedAt.toISOString(),
-      })),
-      ...kits.map((k) => ({
-        id: k.id,
-        type: 'kit' as const,
-        subtype: null,
-        title: k.title,
-        slug: k.slug,
-        excerpt: k.shortDescription ?? null,
-        url: `/kits/${k.slug}`,
-        updatedAt: k.updatedAt.toISOString(),
       })),
     ].sort(
       (a, b) =>

@@ -5,6 +5,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { apiGetSystemBySlug, resolveAbsoluteMediaUrl, resolveMediaUrl } from '@/lib/api';
 import BookmarkButton from '@/components/BookmarkButton';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 import { SITE_URL } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
@@ -76,10 +78,14 @@ export default async function SystemDetailPage({ params }: Props) {
 
           {/* Cover */}
           {resolveMediaUrl(system.imageUrl) && (
-            <div style={{ width: '100%', height: 240, borderRadius: 16, overflow: 'hidden', marginBottom: 32 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={resolveMediaUrl(system.imageUrl)!} alt={system.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
+            <CoverImage
+              src={resolveMediaUrl(system.imageUrl)!}
+              alt={system.title}
+              focus={coverFocusFromEntity(system)}
+              aspectRatio={COVER_ASPECT_RATIO}
+              radius={16}
+              style={{ marginBottom: 32 }}
+            />
           )}
 
           {/* Meta badges */}
@@ -135,39 +141,6 @@ export default async function SystemDetailPage({ params }: Props) {
                 </span>
               ))}
             </div>
-          )}
-
-          {/* Related kits */}
-          {system.kits.length > 0 && (
-            <section style={{ marginBottom: 40 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>
-                Набори для {system.title}
-              </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-                {system.kits.map((kit) => (
-                  <Link
-                    key={kit.id}
-                    href={`/kits/${kit.slug}`}
-                    style={{ textDecoration: 'none', display: 'block' }}
-                  >
-                    <div
-                      className="card-hover"
-                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', cursor: 'pointer' }}
-                    >
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{kit.title}</div>
-                      {kit.shortDescription && (
-                        <p className="line-clamp-2" style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                          {kit.shortDescription}
-                        </p>
-                      )}
-                      {kit.priceText && (
-                        <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600, marginTop: 8 }}>{kit.priceText}</div>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
           )}
 
           {/* Back link */}

@@ -367,10 +367,10 @@ export default function ProfilePageClient() {
           {/* Bookmarks */}
           <section style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Збережене</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Матеріали, системи та набори, які ви зберегли</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>Матеріали, довідка та системи, які ви зберегли</p>
 
             {bookmarks.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Поки немає збережених матеріалів. Відкрийте статтю, довідку, систему або набір і натисніть «Зберегти».</p>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Поки немає збережених матеріалів. Відкрийте статтю, довідку або систему і натисніть «Зберегти».</p>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {bookmarks.map((bm) => (

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -115,13 +116,8 @@ export class BookmarksService {
         if (!system) throw new NotFoundException('System not found or not published');
         return;
       }
-      case BookmarkTargetType.KIT: {
-        const kit = await this.prisma.kit.findFirst({
-          where: { id: targetId, status: ContentStatus.PUBLISHED },
-        });
-        if (!kit) throw new NotFoundException('Kit not found or not published');
-        return;
-      }
+      case BookmarkTargetType.KIT:
+        throw new BadRequestException('Розділ наборів вилучено');
       default:
         throw new NotFoundException('Invalid target type');
     }
@@ -203,28 +199,9 @@ export class BookmarksService {
           unavailable: false,
         };
       }
-      case BookmarkTargetType.KIT: {
-        const kit = await this.prisma.kit.findUnique({
-          where: { id: bookmark.targetId },
-          select: {
-            title: true,
-            slug: true,
-            shortDescription: true,
-            imageUrl: true,
-            status: true,
-          },
-        });
-        if (!kit || kit.status !== ContentStatus.PUBLISHED) return base;
-        return {
-          ...base,
-          title: kit.title,
-          slug: kit.slug,
-          url: `/kits/${kit.slug}`,
-          excerpt: kit.shortDescription,
-          imageUrl: kit.imageUrl,
-          unavailable: false,
-        };
-      }
+      case BookmarkTargetType.KIT:
+        // Каталог наборів вилучено; старі закладки лишаються в БД, але без посилання.
+        return { ...base, title: 'Набір (розділ вилучено)' };
       default:
         return base;
     }

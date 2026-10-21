@@ -5,7 +5,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 export interface AdminStats {
   content: { total: number; published: number; drafts: number; news: number; articles: number };
   systems: number;
-  kits: number;
   communities: number;
   games: number;
   /** Лише для ADMIN: редактору кількість акаунтів не розкривається. */
@@ -20,7 +19,7 @@ export class AdminService {
   async getStats(role: UserRole): Promise<AdminStats> {
     const isAdmin = role === UserRole.ADMIN;
 
-    const [total, published, drafts, news, articles, systems, kits, communities, games, usersTotal, usersBlocked] =
+    const [total, published, drafts, news, articles, systems, communities, games, usersTotal, usersBlocked] =
       await Promise.all([
         this.prisma.contentItem.count(),
         this.prisma.contentItem.count({ where: { status: ContentStatus.PUBLISHED } }),
@@ -28,7 +27,6 @@ export class AdminService {
         this.prisma.contentItem.count({ where: { type: ContentType.NEWS } }),
         this.prisma.contentItem.count({ where: { type: ContentType.ARTICLE } }),
         this.prisma.gameSystem.count(),
-        this.prisma.kit.count(),
         this.prisma.community.count(),
         this.prisma.game.count(),
         isAdmin ? this.prisma.user.count({ where: { status: { not: UserStatus.DELETED } } }) : Promise.resolve(0),
@@ -38,7 +36,6 @@ export class AdminService {
     return {
       content: { total, published, drafts, news, articles },
       systems,
-      kits,
       communities,
       games,
       users: isAdmin ? { total: usersTotal, blocked: usersBlocked } : null,

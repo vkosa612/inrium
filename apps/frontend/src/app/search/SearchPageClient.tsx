@@ -9,14 +9,12 @@ const TYPE_LABEL: Record<string, string> = {
   content: 'Матеріал',
   help: 'Довідка',
   system: 'Ігрова система',
-  kit: 'Набір',
 };
 
 const TYPE_COLOR: Record<string, string> = {
   content: '#a78bfa',
   help: '#f7971f',
   system: '#22d3ee',
-  kit: '#10b981',
 };
 
 const SUBTYPE_LABEL: Record<string, string> = {
@@ -100,14 +98,13 @@ function SearchContent() {
     content: results.filter((r) => r.type === 'content'),
     help: results.filter((r) => r.type === 'help'),
     system: results.filter((r) => r.type === 'system'),
-    kit: results.filter((r) => r.type === 'kit'),
   };
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 24px' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>🔍 Пошук</h1>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Шукай по матеріалах, ігрових системах та наборах</p>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Шукай по матеріалах, довідці та ігрових системах</p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, marginBottom: 36 }}>
@@ -189,17 +186,6 @@ function SearchContent() {
             </section>
           )}
 
-          {grouped.kit.length > 0 && (
-            <section style={{ marginBottom: 32 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 3, height: 14, background: '#10b981', borderRadius: 2, display: 'inline-block' }} />
-                Набори · {grouped.kit.length}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {grouped.kit.map((r) => <ResultCard key={r.id} result={r} />)}
-              </div>
-            </section>
-          )}
         </div>
       )}
 

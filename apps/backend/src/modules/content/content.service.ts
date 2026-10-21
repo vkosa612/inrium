@@ -10,6 +10,12 @@ import type { UpdateContentDto } from './dto/update-content.dto';
 import type { ContentQueryDto } from './dto/content-query.dto';
 import type { AdminContentQueryDto } from './dto/admin-content-query.dto';
 import { generateSlug } from './utils/slug.util';
+import {
+  COVER_FOCUS_SELECT,
+  coverFocusCreateData,
+  coverFocusUpdateData,
+  isClearedImageUrl,
+} from '../../common/dto/cover-focus.dto';
 
 // ─── Selects ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +27,7 @@ const CONTENT_SELECT = {
   title: true,
   excerpt: true,
   coverImageUrl: true,
+  ...COVER_FOCUS_SELECT,
   isFeatured: true,
   publishedAt: true,
   createdAt: true,
@@ -153,6 +160,7 @@ export class ContentService {
         content: dto.content,
         excerpt: dto.excerpt,
         coverImageUrl: dto.coverImageUrl,
+        ...coverFocusCreateData(dto),
         isFeatured: dto.isFeatured ?? false,
         publishedAt,
         authorId,
@@ -193,7 +201,14 @@ export class ContentService {
         ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.content !== undefined && { content: dto.content }),
         ...(dto.excerpt !== undefined && { excerpt: dto.excerpt }),
-        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
+        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl || null }),
+        ...coverFocusUpdateData(dto, {
+          imageCleared: isClearedImageUrl(dto.coverImageUrl),
+          imageReplaced:
+            dto.coverImageUrl !== undefined &&
+            !isClearedImageUrl(dto.coverImageUrl) &&
+            dto.coverImageUrl !== existing.coverImageUrl,
+        }),
         ...(dto.isFeatured !== undefined && { isFeatured: dto.isFeatured }),
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
         ...(publishedAt && { publishedAt }),

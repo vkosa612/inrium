@@ -6,6 +6,8 @@ import Footer from '@/components/Footer';
 import MarkdownContent from '@/components/MarkdownContent';
 import BookmarkButton from '@/components/BookmarkButton';
 import { fetchContentBySlug, fetchContent, resolveAbsoluteMediaUrl, resolveMediaUrl } from '@/lib/api';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 import { SITE_URL } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
@@ -46,7 +48,7 @@ const TYPE_COLOR: Record<string, string> = {
 };
 const TYPE_HREF: Record<string, string> = {
   NEWS: '/news', ARTICLE: '/articles', GAME_SYSTEM: '/systems',
-  KIT: '/kits', HELP_PAGE: '/',
+  KIT: '/articles', HELP_PAGE: '/',
 };
 
 function formatDate(d: string | null) {
@@ -101,8 +103,14 @@ export default async function ContentSlugPage({ params }: Props) {
 
           {/* Cover image */}
           {resolveMediaUrl(item.coverImageUrl) && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={resolveMediaUrl(item.coverImageUrl)!} alt={item.title} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 12, marginBottom: 28, border: '1px solid var(--border)' }} />
+            <CoverImage
+              src={resolveMediaUrl(item.coverImageUrl)!}
+              alt={item.title}
+              focus={coverFocusFromEntity(item)}
+              aspectRatio={COVER_ASPECT_RATIO}
+              radius={12}
+              style={{ marginBottom: 28, border: '1px solid var(--border)' }}
+            />
           )}
 
           {/* Type + meta badges */}

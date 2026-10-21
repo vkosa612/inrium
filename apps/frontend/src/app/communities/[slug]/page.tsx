@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { apiGetCommunityBySlug, resolveMediaUrl } from '@/lib/api';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,19 +42,13 @@ export default async function CommunityDetailPage({ params }: Props) {
         <Link href="/communities" style={{ color: '#f7971f', fontSize: 13, textDecoration: 'none' }}>← Усі спільноти</Link>
 
         {coverSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <CoverImage
             src={coverSrc}
             alt={community.name}
-            style={{
-              width: '100%',
-              maxHeight: 280,
-              objectFit: 'cover',
-              borderRadius: 12,
-              marginTop: 16,
-              marginBottom: 20,
-              border: '1px solid var(--border)',
-            }}
+            focus={coverFocusFromEntity(community)}
+            aspectRatio={COVER_ASPECT_RATIO}
+            radius={12}
+            style={{ marginTop: 16, marginBottom: 20, border: '1px solid var(--border)' }}
           />
         ) : (
           <div

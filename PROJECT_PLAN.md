@@ -14,7 +14,7 @@ INRIUM — self-hosted TTRPG-платформа (monorepo, Docker-first). **MVP 
 | Docker Compose (postgres, backend, frontend) | ✅ |
 | Auth (JWT + refresh sessions, RBAC) | ✅ |
 | Profile + bookmarks | ✅ |
-| CMS (content, systems, kits, uploads) | ✅ |
+| CMS (content, systems, uploads) | ✅ |
 | Public pages (/about, /contacts, /advertise) | ✅ |
 | SEO (sitemap, robots, metadata) | ✅ |
 | Games API + UI + applications (GM/players) | ✅ |
@@ -24,7 +24,7 @@ INRIUM — self-hosted TTRPG-платформа (monorepo, Docker-first). **MVP 
 | Homepage ← HomePageBlock (dynamic sections) | ✅ |
 | Games section on homepage | ✅ |
 | Communities in Header | ✅ |
-| Kit listing thumbnails | ✅ |
+| Розділ наборів (Kits) вилучено з продукту | ✅ |
 | Email UI (verify/forgot/reset) | ✅ |
 | SMTP env + EmailService | ✅ |
 | Admin users (list + role change) | ✅ |
@@ -58,7 +58,7 @@ inrium/
 └── docker-compose.yml
 ```
 
-**Key backend modules:** auth, content, systems, kits, help, home, home-blocks, games, communities, users, bookmarks, uploads, email, health
+**Key backend modules:** auth, content, systems, help, home, home-blocks, games, communities, users, bookmarks, uploads, email, health
 
 **Key frontend routes:** `/`, `/games`, `/my/games`, `/communities`, `/users/[id]`, `/admin/*`, `/verify-email`, `/forgot-password`, `/reset-password`
 
@@ -116,7 +116,6 @@ docker compose up -d
 
 - `http://localhost:3000/` — dynamic homepage + games block
 - `http://localhost:3000/communities` — in header nav
-- `http://localhost:3000/kits` — thumbnails
 - `http://localhost:3000/forgot-password` — form works
 - `http://localhost:3000/admin/users` — ADMIN only
 - `http://localhost:3000/admin/communities` — ADMIN CRUD

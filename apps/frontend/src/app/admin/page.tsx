@@ -24,7 +24,6 @@ function buildStatCards(stats: AdminStats | null): StatCard[] {
     { label: 'Статей', value: fmt(stats?.content.articles), icon: '✍️', color: '#ec4899' },
     { label: 'Чернеток', value: fmt(stats?.content.drafts), icon: '📝', color: '#60a5fa' },
     { label: 'Ігрових систем', value: fmt(stats?.systems), icon: '🎲', color: '#34d399' },
-    { label: 'Наборів', value: fmt(stats?.kits), icon: '📦', color: '#fbbf24' },
     { label: 'Ігор', value: fmt(stats?.games), icon: '🗓️', color: '#f472b6' },
   ];
   // Кількість акаунтів бачить лише адміністратор.
@@ -37,7 +36,6 @@ function buildStatCards(stats: AdminStats | null): StatCard[] {
 const QUICK_LINKS = [
   { label: 'Контент', desc: 'Новини, статті та матеріали', href: '/admin/content', icon: '📋', soon: false },
   { label: 'Ігрові системи', desc: 'Огляди та описи систем', href: '/admin/systems', icon: '🎲', soon: false },
-  { label: 'Набори', desc: 'Стартові набори та інструменти', href: '/admin/kits', icon: '📦', soon: false },
   { label: 'Користувачі', desc: 'Ролі та акаунти', href: '/admin/users', icon: '👤', soon: false },
   { label: 'Спільноти', desc: 'Керування спільнотами', href: '/admin/communities', icon: '👥', soon: false },
   { label: 'Головна сторінка', desc: 'Блоки та виділений контент', href: '/admin/home-blocks', icon: '🏠', soon: false },
@@ -210,9 +208,8 @@ function AdminDashboardContent() {
           >
             <strong style={{ color: '#10b981' }}>✓ CMS активна.</strong>{' '}
             Управляйте{' '}
-            <Link href="/admin/content" style={{ color: '#10b981', textDecoration: 'underline' }}>контентом</Link>,{' '}
-            <Link href="/admin/systems" style={{ color: '#a78bfa', textDecoration: 'underline' }}>ігровими системами</Link> та{' '}
-            <Link href="/admin/kits" style={{ color: '#10b981', textDecoration: 'underline' }}>наборами</Link> через адмін-панель.
+            <Link href="/admin/content" style={{ color: '#10b981', textDecoration: 'underline' }}>контентом</Link> та{' '}
+            <Link href="/admin/systems" style={{ color: '#a78bfa', textDecoration: 'underline' }}>ігровими системами</Link> через адмін-панель.
           </div>
         </div>
       </main>

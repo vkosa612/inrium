@@ -9,6 +9,12 @@ import { generateSlug } from '../content/utils/slug.util';
 import type { CreateCommunityDto } from './dto/create-community.dto';
 import type { CommunityQueryDto } from './dto/community-query.dto';
 import type { UpdateCommunityDto } from './dto/update-community.dto';
+import {
+  COVER_FOCUS_SELECT,
+  coverFocusCreateData,
+  coverFocusUpdateData,
+  isClearedImageUrl,
+} from '../../common/dto/cover-focus.dto';
 
 const COMMUNITY_SELECT = {
   id: true,
@@ -16,6 +22,7 @@ const COMMUNITY_SELECT = {
   slug: true,
   description: true,
   coverImageUrl: true,
+  ...COVER_FOCUS_SELECT,
   isPublished: true,
   createdAt: true,
   updatedAt: true,
@@ -88,6 +95,7 @@ export class CommunitiesService {
         slug,
         description: dto.description,
         coverImageUrl: dto.coverImageUrl,
+        ...coverFocusCreateData(dto),
         isPublished: dto.isPublished ?? true,
       },
       select: COMMUNITY_SELECT,
@@ -109,7 +117,14 @@ export class CommunitiesService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
+        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl || null }),
+        ...coverFocusUpdateData(dto, {
+          imageCleared: isClearedImageUrl(dto.coverImageUrl),
+          imageReplaced:
+            dto.coverImageUrl !== undefined &&
+            !isClearedImageUrl(dto.coverImageUrl) &&
+            dto.coverImageUrl !== item.coverImageUrl,
+        }),
         ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
       },
       select: COMMUNITY_SELECT,

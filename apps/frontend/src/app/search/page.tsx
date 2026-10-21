@@ -5,7 +5,7 @@ import SearchPageClient from './SearchPageClient';
 
 export const metadata: Metadata = {
   title: 'Пошук — INRIUM',
-  description: 'Пошук по ігрових системах, наборах, матеріалах та довідці INRIUM',
+  description: 'Пошук по ігрових системах, матеріалах та довідці INRIUM',
   robots: { index: false, follow: false },
 };
 

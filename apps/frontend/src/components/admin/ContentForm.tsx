@@ -6,12 +6,12 @@ import type { ContentItemAdmin, CreateContentPayload, ContentType, ContentStatus
 import { apiCreateContent, apiUpdateContent } from '@/lib/api';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import ImageUpload from '@/components/ImageUpload';
+import { coverFocusFromEntity, coverFocusToPayload } from '@/lib/cover-focus';
 
 const TYPE_OPTIONS: { value: ContentType; label: string }[] = [
   { value: 'NEWS', label: 'Новини' },
   { value: 'ARTICLE', label: 'Стаття' },
   { value: 'GAME_SYSTEM', label: 'Ігрова система' },
-  { value: 'KIT', label: 'Набір' },
   { value: 'HELP_PAGE', label: 'Довідка' },
 ];
 
@@ -76,6 +76,7 @@ export default function ContentForm({ initial }: ContentFormProps) {
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? '');
   const [content, setContent] = useState(initial?.content ?? '');
   const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl ?? '');
+  const [coverFocus, setCoverFocus] = useState(() => coverFocusFromEntity(initial));
   const [isFeatured, setIsFeatured] = useState(initial?.isFeatured ?? false);
 
   const [slugTouched, setSlugTouched] = useState(isEdit);
@@ -106,7 +107,8 @@ export default function ContentForm({ initial }: ContentFormProps) {
       status,
       excerpt: excerpt.trim() || undefined,
       content: content.trim(),
-      coverImageUrl: coverImageUrl.trim() || undefined,
+      coverImageUrl: isEdit ? coverImageUrl.trim() : (coverImageUrl.trim() || undefined),
+      ...coverFocusToPayload(coverFocus),
       isFeatured,
     };
 
@@ -165,7 +167,10 @@ export default function ContentForm({ initial }: ContentFormProps) {
             value={type}
             onChange={(e) => setType(e.target.value as ContentType)}
           >
-            {TYPE_OPTIONS.map((o) => (
+            {(initial?.type === 'KIT'
+              ? [...TYPE_OPTIONS, { value: 'KIT' as ContentType, label: 'Набір (застаріле)' }]
+              : TYPE_OPTIONS
+            ).map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
@@ -210,6 +215,9 @@ export default function ContentForm({ initial }: ContentFormProps) {
         label="Обкладинка"
         value={coverImageUrl}
         onChange={setCoverImageUrl}
+        adjustable
+        focus={coverFocus}
+        onFocusChange={setCoverFocus}
         helperText="рекомендовано 1200×630 px"
       />
 

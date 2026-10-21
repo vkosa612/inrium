@@ -1,8 +1,9 @@
 import { IsSafeImageUrl } from '../../../common/validators/safe-image-url.validator';
+import { CoverFocusDto } from '../../../common/dto/cover-focus.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-export class CreateCommunityDto {
+export class CreateCommunityDto extends CoverFocusDto {
   @ApiProperty()
   @IsString()
   @MinLength(2)

@@ -5,6 +5,8 @@ import Footer from '@/components/Footer';
 import PaginationWrapper from '@/components/PaginationWrapper';
 import { apiGetGames, resolveMediaUrl, type GameListItem } from '@/lib/api';
 import { formatApprovedPlayerNames, recruitmentStatusLabel } from '@/lib/game-labels';
+import CoverImage from '@/components/CoverImage';
+import { coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,11 +53,11 @@ function GameCard({ game }: { game: GameListItem }) {
         }}
       >
         {coverSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <CoverImage
             src={coverSrc}
             alt=""
-            style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+            focus={coverFocusFromEntity(game)}
+            height={140}
           />
         ) : (
           <div

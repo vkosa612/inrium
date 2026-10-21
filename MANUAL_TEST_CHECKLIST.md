@@ -52,7 +52,7 @@
 - [ ] Подача заявки на гру (OPEN)
 - [ ] `/my/applications` — заявка зі статусом «Очікує рішення»
 - [ ] Скасування заявки (CANCELLED)
-- [ ] Закладка на content/system/kit — «Зберегти» на detail page
+- [ ] Закладка на content/system — «Зберегти» на detail page
 - [ ] `/profile` — список закладок, видалення
 - [ ] Self-delete account (`ВИДАЛИТИ` + пароль) → logout, акаунт недоступний
 
@@ -82,7 +82,6 @@ Login: `admin@inrium.local`
 - [ ] `/admin/users` — список, ролі/статуси українською, зміна ролі
 - [ ] `/admin/content` — CRUD, image upload, publish
 - [ ] `/admin/systems` — CRUD + cover
-- [ ] `/admin/kits` — CRUD + cover
 - [ ] `/admin/communities` — CRUD, empty state українською
 - [ ] `/admin/home-blocks` — edit blocks, типи українською
 - [ ] Після publish — public pages відображають контент
@@ -101,7 +100,7 @@ Login: `admin@inrium.local`
 ## 6. SEO / Static pages
 
 - [ ] `/` — homepage
-- [ ] `/news`, `/articles`, `/systems`, `/kits`, `/help`
+- [ ] `/news`, `/articles`, `/systems`, `/help`
 - [ ] `/about`, `/contacts`, `/advertise`
 - [ ] `/sitemap.xml` — static + dynamic slugs (games, communities, content, help)
 - [ ] `/robots.txt`

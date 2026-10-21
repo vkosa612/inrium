@@ -2,17 +2,19 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { apiGetHome, apiGetHomeBlocks, resolveMediaUrl, type HomeData, type HomePageBlock, type ContentItem, type GameSystem, type Kit, type HelpItem, type GameListItem } from '@/lib/api';
+import { apiGetHome, apiGetHomeBlocks, resolveMediaUrl, type HomeData, type HomePageBlock, type ContentItem, type GameSystem, type HelpItem, type GameListItem } from '@/lib/api';
 import { formatApprovedPlayerNames, recruitmentStatusLabel } from '@/lib/game-labels';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'INRIUM — платформа для настільних рольових ігор',
-  description: 'INRIUM — ігрові системи, набори, новини та матеріали для гравців і майстрів TTRPG.',
+  description: 'INRIUM — ігрові системи, новини та матеріали для гравців і майстрів TTRPG.',
   openGraph: {
     title: 'INRIUM — платформа для настільних рольових ігор',
-    description: 'INRIUM — ігрові системи, набори, новини та матеріали для гравців і майстрів TTRPG.',
+    description: 'INRIUM — ігрові системи, новини та матеріали для гравців і майстрів TTRPG.',
     type: 'website',
   },
 };
@@ -43,7 +45,6 @@ const DEFAULT_HOME_BLOCKS: HomePageBlock[] = [
   { id: 'fb-news', type: 'LATEST_NEWS', title: 'Останні новини', subtitle: null, position: 2, enabled: true },
   { id: 'fb-games', type: 'GAMES', title: 'Ігрові сесії', subtitle: null, position: 3, enabled: true },
   { id: 'fb-systems', type: 'GAME_SYSTEMS', title: 'Ігрові системи', subtitle: null, position: 4, enabled: true },
-  { id: 'fb-kits', type: 'KITS', title: 'Набори', subtitle: null, position: 5, enabled: true },
   { id: 'fb-help', type: 'HELP', title: 'Довідка', subtitle: null, position: 6, enabled: true },
 ];
 
@@ -76,11 +77,22 @@ function SectionHeader({ title, href, accent = '#a78bfa', count }: { title: stri
 function ContentCard({ item, compact = false }: { item: ContentItem; compact?: boolean }) {
   const color = TYPE_COLOR[item.type] ?? '#a78bfa';
   const label = TYPE_LABEL[item.type] ?? item.type;
+  const coverSrc = resolveMediaUrl(item.coverImageUrl);
 
   if (compact) {
     return (
       <Link href={`/content/${item.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-        <div className="card-hover" style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+        <div className="card-hover" style={{ display: 'flex', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', alignItems: 'flex-start' }}>
+          {coverSrc && (
+            <CoverImage
+              src={coverSrc}
+              alt=""
+              focus={coverFocusFromEntity(item)}
+              aspectRatio={COVER_ASPECT_RATIO}
+              radius={6}
+              style={{ width: 96, flex: '0 0 96px' }}
+            />
+          )}
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}30`, padding: '2px 8px', borderRadius: 12 }}>{label}</span>
@@ -95,7 +107,16 @@ function ContentCard({ item, compact = false }: { item: ContentItem; compact?: b
 
   return (
     <Link href={`/content/${item.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {coverSrc && (
+          <CoverImage
+            src={coverSrc}
+            alt=""
+            focus={coverFocusFromEntity(item)}
+            aspectRatio={COVER_ASPECT_RATIO}
+          />
+        )}
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color, background: `${color}18`, border: `1px solid ${color}30`, padding: '2px 10px', borderRadius: 20 }}>{label}</span>
           {item.isFeatured && <span style={{ fontSize: 11, color: '#a78bfa', fontWeight: 600 }}>★ Обране</span>}
@@ -104,6 +125,7 @@ function ContentCard({ item, compact = false }: { item: ContentItem; compact?: b
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, margin: 0 }}>{item.title}</h3>
         {item.excerpt && <p className="line-clamp-2" style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6, margin: 0, flex: 1 }}>{item.excerpt}</p>}
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.author?.displayName}{item.author && item.category && ' · '}{item.category?.name}</div>
+        </div>
       </article>
     </Link>
   );
@@ -113,9 +135,20 @@ function ContentCard({ item, compact = false }: { item: ContentItem; compact?: b
 
 function SystemCard({ system }: { system: GameSystem }) {
   const complexityColor = COMPLEXITY_COLOR[system.complexity ?? ''] ?? '#6b7280';
+  const imageSrc = resolveMediaUrl(system.imageUrl);
   return (
     <Link href={`/systems/${system.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', cursor: 'pointer' }}>
+        {imageSrc && (
+          <CoverImage
+            src={imageSrc}
+            alt={system.title}
+            focus={coverFocusFromEntity(system)}
+            height={120}
+            radius={8}
+            style={{ marginBottom: 12 }}
+          />
+        )}
         <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
           {system.genre && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20, color: '#a78bfa', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>{system.genre}</span>}
           {system.complexity && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20, color: complexityColor, background: `${complexityColor}18`, border: `1px solid ${complexityColor}30` }}>{system.complexity}</span>}
@@ -123,25 +156,6 @@ function SystemCard({ system }: { system: GameSystem }) {
         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginBottom: 8, lineHeight: 1.3 }}>{system.title}</div>
         {system.shortDescription && <p className="line-clamp-2" style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{system.shortDescription}</p>}
         <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, marginTop: 12 }}>Детальніше →</div>
-      </div>
-    </Link>
-  );
-}
-
-// ─── Kit card ─────────────────────────────────────────────────────────────────
-
-function KitCard({ kit }: { kit: Kit }) {
-  return (
-    <Link href={`/kits/${kit.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <div className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', cursor: 'pointer' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          {kit.category && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>{kit.category}</span>}
-          {kit.priceText && <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>{kit.priceText}</span>}
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>{kit.title}</div>
-        {kit.shortDescription && <p className="line-clamp-2" style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{kit.shortDescription}</p>}
-        {kit.system && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10 }}>🎲 {kit.system.title}</div>}
-        <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600, marginTop: 10 }}>Переглянути →</div>
       </div>
     </Link>
   );
@@ -171,7 +185,7 @@ function HeroSection({ stats, subtitle }: { stats: HomeData['stats']; subtitle?:
         </h1>
 
         <p style={{ fontSize: 16, color: 'var(--text-dim)', lineHeight: 1.7, marginBottom: 32, maxWidth: 560 }}>
-          {subtitle?.trim() || 'Системи, новини, статті, набори та спільнота для гравців і майстрів. Все необхідне для ваших кампаній в одному місці.'}
+          {subtitle?.trim() || 'Системи, новини, статті та спільнота для гравців і майстрів. Все необхідне для ваших кампаній в одному місці.'}
         </p>
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 36 }}>
@@ -181,8 +195,8 @@ function HeroSection({ stats, subtitle }: { stats: HomeData['stats']; subtitle?:
           <Link href="/articles" style={{ padding: '12px 24px', borderRadius: 10, border: '1px solid var(--border-bright)', color: 'var(--text)', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Статті
           </Link>
-          <Link href="/kits" style={{ padding: '12px 24px', borderRadius: 10, border: '1px solid var(--border-bright)', color: 'var(--text)', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
-            Набори
+          <Link href="/games" style={{ padding: '12px 24px', borderRadius: 10, border: '1px solid var(--border-bright)', color: 'var(--text)', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+            Ігри
           </Link>
         </div>
 
@@ -190,7 +204,6 @@ function HeroSection({ stats, subtitle }: { stats: HomeData['stats']; subtitle?:
         <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
           {[
             { label: 'Систем', value: stats.systems, color: '#a78bfa' },
-            { label: 'Наборів', value: stats.kits, color: '#10b981' },
             { label: 'Статей', value: stats.articles, color: '#ec4899' },
             { label: 'Новин', value: stats.news, color: '#f59e0b' },
             { label: 'Довідок', value: stats.help, color: '#f7971f' },
@@ -216,8 +229,13 @@ function GameCard({ game }: { game: GameListItem }) {
     <Link href={`/games/${game.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
       <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {imageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageSrc} alt={game.title} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8 }} />
+          <CoverImage
+            src={imageSrc}
+            alt={game.title}
+            focus={coverFocusFromEntity(game)}
+            height={120}
+            radius={8}
+          />
         ) : (
           <div style={{ width: '100%', height: 80, borderRadius: 8, background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(139,92,246,0.08) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🎲</div>
         )}
@@ -260,12 +278,11 @@ export default async function HomePage() {
   const latestNews = data?.latestNews ?? [];
   const latestArticles = data?.latestArticles ?? [];
   const systems = data?.systems ?? [];
-  const kits = data?.kits ?? [];
   const helpItems: HelpItem[] = data?.helpItems ?? [];
   const games = data?.games ?? [];
-  const stats = data?.stats ?? { news: 0, articles: 0, systems: 0, kits: 0, help: 0, games: 0 };
+  const stats = data?.stats ?? { news: 0, articles: 0, systems: 0, help: 0, games: 0 };
 
-  const enabledBlocks = blocks.filter((b) => b.enabled).sort((a, b) => a.position - b.position);
+  const enabledBlocks = blocks.filter((b) => b.enabled && b.type !== 'KITS').sort((a, b) => a.position - b.position);
 
   function renderBlock(block: HomePageBlock) {
     switch (block.type) {
@@ -343,19 +360,6 @@ export default async function HomePage() {
             )}
           </section>
         );
-      case 'KITS':
-        return (
-          <section key={block.id} style={{ marginBottom: 40 }}>
-            <SectionHeader title={block.title} href="/kits" accent="#10b981" count={stats.kits} />
-            {kits.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>📦 Набори скоро з&apos;являться</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
-                {kits.map((k) => <KitCard key={k.id} kit={k} />)}
-              </div>
-            )}
-          </section>
-        );
       case 'HELP':
         if (helpItems.length === 0) return null;
         return (
@@ -391,7 +395,7 @@ export default async function HomePage() {
           {/* ── CTA strip ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 16 }}>
             {[
-              { icon: '🔍', title: 'Пошук по сайту', desc: 'Знайди системи, набори і матеріали', href: '/search', color: '#a78bfa' },
+              { icon: '🔍', title: 'Пошук по сайту', desc: 'Знайди системи, статті і матеріали', href: '/search', color: '#a78bfa' },
               { icon: '📰', title: 'Всі новини', desc: 'Стеж за оновленнями TTRPG', href: '/news', color: '#f59e0b' },
               { icon: '✍️', title: 'Читати статті', desc: 'Гайди, огляди, рецензії', href: '/articles', color: '#ec4899' },
             ].map((c) => (

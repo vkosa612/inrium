@@ -4,7 +4,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
 import PaginationWrapper from '@/components/PaginationWrapper';
-import { fetchContent, type ContentItem } from '@/lib/api';
+import { fetchContent, resolveMediaUrl, type ContentItem } from '@/lib/api';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +30,16 @@ function formatDate(d: string | null) {
 function NewsCard({ item }: { item: ContentItem }) {
   return (
     <Link href={`/content/${item.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px', cursor: 'pointer' }}>
+      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+        {resolveMediaUrl(item.coverImageUrl) && (
+          <CoverImage
+            src={resolveMediaUrl(item.coverImageUrl)!}
+            alt=""
+            focus={coverFocusFromEntity(item)}
+            aspectRatio={COVER_ASPECT_RATIO}
+          />
+        )}
+        <div style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', padding: '3px 10px', borderRadius: 20 }}>
             Новини
@@ -45,6 +56,7 @@ function NewsCard({ item }: { item: ContentItem }) {
             {item.category && <span>{item.category.name}</span>}
           </div>
         )}
+        </div>
       </article>
     </Link>
   );

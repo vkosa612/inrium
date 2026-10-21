@@ -4,7 +4,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FilterBar from '@/components/FilterBar';
 import PaginationWrapper from '@/components/PaginationWrapper';
-import { fetchContent, type ContentItem } from '@/lib/api';
+import { fetchContent, resolveMediaUrl, type ContentItem } from '@/lib/api';
+import CoverImage from '@/components/CoverImage';
+import { COVER_ASPECT_RATIO, coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +26,16 @@ function formatDate(d: string | null) {
 function ArticleCard({ item }: { item: ContentItem }) {
   return (
     <Link href={`/content/${item.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <article className="card-hover" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px', alignItems: 'start', cursor: 'pointer' }}>
+      <article className="card-hover" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+        {resolveMediaUrl(item.coverImageUrl) && (
+          <CoverImage
+            src={resolveMediaUrl(item.coverImageUrl)!}
+            alt=""
+            focus={coverFocusFromEntity(item)}
+            aspectRatio={COVER_ASPECT_RATIO}
+          />
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, padding: '20px 24px', alignItems: 'start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ec4899', background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.25)', padding: '3px 10px', borderRadius: 20 }}>
@@ -45,6 +56,7 @@ function ArticleCard({ item }: { item: ContentItem }) {
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(item.publishedAt ?? item.createdAt)}</span>
+        </div>
         </div>
       </article>
     </Link>

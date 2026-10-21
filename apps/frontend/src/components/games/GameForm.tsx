@@ -14,6 +14,7 @@ import {
   type GameStatus,
 } from '@/lib/api';
 import { GAME_STATUS_LABEL, slugifyTitle, toDatetimeLocalValue } from '@/lib/game-labels';
+import { coverFocusFromEntity, coverFocusToPayload } from '@/lib/cover-focus';
 
 const STATUS_OPTIONS: { value: GameStatus; label: string }[] = [
   { value: 'DRAFT', label: GAME_STATUS_LABEL.DRAFT },
@@ -63,6 +64,7 @@ export default function GameForm({ initial }: GameFormProps) {
   const [startsAt, setStartsAt] = useState(toDatetimeLocalValue(initial?.startsAt));
   const [gameSystemId, setGameSystemId] = useState(initial?.gameSystem?.id ?? '');
   const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl ?? '');
+  const [coverFocus, setCoverFocus] = useState(() => coverFocusFromEntity(initial));
   const [systems, setSystems] = useState<Array<{ id: string; title: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -89,7 +91,8 @@ export default function GameForm({ initial }: GameFormProps) {
       maxPlayers: maxPlayers ? parseInt(maxPlayers, 10) : undefined,
       startsAt: startsAt ? new Date(startsAt).toISOString() : undefined,
       gameSystemId: gameSystemId || undefined,
-      coverImageUrl: coverImageUrl.trim() || undefined,
+      coverImageUrl: isEdit ? coverImageUrl.trim() : (coverImageUrl.trim() || undefined),
+      ...coverFocusToPayload(coverFocus),
     };
     try {
       if (isEdit && initial) {
@@ -132,6 +135,9 @@ export default function GameForm({ initial }: GameFormProps) {
           value={coverImageUrl}
           onChange={setCoverImageUrl}
           uploadFn={(file) => apiUploadGameCover(initial.id, file)}
+          adjustable
+          focus={coverFocus}
+          onFocusChange={setCoverFocus}
           helperText="JPG, PNG, WebP"
         />
       ) : (

@@ -4,6 +4,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaginationWrapper from '@/components/PaginationWrapper';
 import { apiGetCommunities, resolveMediaUrl, type Community } from '@/lib/api';
+import CoverImage from '@/components/CoverImage';
+import { coverFocusFromEntity } from '@/lib/cover-focus';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,11 +57,11 @@ export default async function CommunitiesPage({ searchParams }: Props) {
                 }}
               >
                 {coverSrc ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <CoverImage
                     src={coverSrc}
                     alt=""
-                    style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
+                    focus={coverFocusFromEntity(c)}
+                    height={120}
                   />
                 ) : (
                   <div

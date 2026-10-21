@@ -10,7 +10,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/news`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/articles`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE_URL}/systems`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${BASE_URL}/kits`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE_URL}/games`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/communities`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE_URL}/help`, changeFrequency: 'monthly', priority: 0.7 },
@@ -45,13 +44,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    const kitUrls: MetadataRoute.Sitemap = data.kits.map((k) => ({
-      url: `${BASE_URL}/kits/${k.slug}`,
-      lastModified: new Date(k.updatedAt),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    }));
-
     const gameUrls: MetadataRoute.Sitemap = (data.games ?? []).map((g) => ({
       url: `${BASE_URL}/games/${g.slug}`,
       lastModified: new Date(g.updatedAt),
@@ -71,7 +63,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...contentUrls,
       ...helpUrls,
       ...systemUrls,
-      ...kitUrls,
       ...gameUrls,
       ...communityUrls,
     ];
